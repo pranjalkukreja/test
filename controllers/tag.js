@@ -1,5 +1,6 @@
 const Tag = require("../models/tag");
 const News = require('../models/news')
+const axios = require('axios');
 
 
 exports.list = async (req, res) =>
@@ -33,14 +34,69 @@ exports.saveTags = async (req, res) => {
 
 
 exports.read = async (req, res) => {
+    const { code } = req.query;
 
-    let brand = await Tag.findOne({ _id: req.params.slug }).exec();
-    // res.json(category);
-    const products = await News.find({ brand })
-      .sort([["createdAt", "asc"]]).exec();
-    
-    res.json({
-      tag: brand,
-      news: products,
-    });
-  };
+    try {
+        let tag = await Tag.findOne({ _id: req.params.slug }).exec();
+        
+        if (!tag) {
+            return res.status(404).json({ message: "Tag not found" });
+        }
+
+        // First, try fetching top headlines
+        let response = await axios.get('https://newsapi.org/v2/top-headlines', {
+            params: {
+                country: code,
+                category: tag.name, // Assuming 'name' is the field in the Tag model containing the tag's name
+                pageSize: 10,
+                apiKey: '04fc7417a23e435e9a53cccf862be2ca' // Replace with your actual API key
+            }
+        });
+
+        let news = response.data.articles;
+
+        // If top headlines query returns no news, use the everything query
+        if (!news || news.length === 0) {
+            response = await axios.get('https://newsapi.org/v2/everything', {
+                params: {
+                    q: tag.name, // Assuming 'name' is the field in the Tag model containing the tag's name
+                    sortBy: 'popularity',
+                    pageSize: 10,
+                    apiKey: '04fc7417a23e435e9a53cccf862be2ca' // Replace with your actual API key
+                }
+            });
+
+            news = response.data.articles;
+        }
+
+        res.json({
+            tag: tag,
+            news: news
+        });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+
+exports.readFeatured = async (req, res) => {
+    try {
+
+        let products = await Tag.find({ featured: true })
+            .sort([["createdAt", "desc"]])
+            .exec();
+
+        return res.json(products);
+    }
+    catch (error) {
+        console.error("Error saving tags:", error);
+        return res.status(500).json({
+            message: "Error reading tags",
+            error: error
+        });
+    }
+}
+
+

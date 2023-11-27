@@ -8,12 +8,14 @@ const { authCheck, adminCheck } = require("../middlewares/auth");
 const {
     list,
     saveTags,
-    read
+    read,
+    readFeatured
   } = require("../controllers/tag");
 
   router.get("/tags", list);
   router.post('/tag-update', saveTags)
   router.get("/tag/:slug", read);
+  router.get("/tags-featured", readFeatured);
 
 
   module.exports = router;
