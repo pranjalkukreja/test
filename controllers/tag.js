@@ -34,7 +34,7 @@ exports.saveTags = async (req, res) => {
 
 
 exports.read = async (req, res) => {
-    const { code } = req.query;
+    const { code, page } = req.query;
 
     try {
         let tag = await Tag.findOne({ _id: req.params.slug }).exec();
@@ -48,7 +48,8 @@ exports.read = async (req, res) => {
             params: {
                 country: code,
                 category: tag.name, // Assuming 'name' is the field in the Tag model containing the tag's name
-                pageSize: 10,
+                pageSize: 1,
+                page: page,
                 apiKey: '04fc7417a23e435e9a53cccf862be2ca' // Replace with your actual API key
             }
         });
@@ -61,7 +62,8 @@ exports.read = async (req, res) => {
                 params: {
                     q: tag.name, // Assuming 'name' is the field in the Tag model containing the tag's name
                     sortBy: 'popularity',
-                    pageSize: 10,
+                    pageSize: 1,
+                    page: page,
                     apiKey: '04fc7417a23e435e9a53cccf862be2ca' // Replace with your actual API key
                 }
             });
@@ -98,5 +100,65 @@ exports.readFeatured = async (req, res) => {
         });
     }
 }
+
+exports.readByInterests = async (req, res) => {
+    const { code, page } = req.query;
+    let { interest } = req.body;  // Interest may not be provided
+
+    console.log(interest);
+
+    try {
+        const apiKey = '04fc7417a23e435e9a53cccf862be2ca'; // Replace with your actual API key
+        let articles;
+
+        // If no interest is provided, fetch random category from the database
+        if (!interest) {
+            const tags = await Tag.find({}).sort({ createdAt: -1 }).exec();
+            if (tags.length > 0) {
+                const randomTag = tags[Math.floor(Math.random() * tags.length)];
+                interest = randomTag.name; // Assign a random tag name to interest
+            } else {
+                return res.status(404).json({ message: "No categories found" });
+            }
+        }
+
+        // Attempt to fetch top headlines for the given interest
+        let response = await axios.get('https://newsapi.org/v2/top-headlines', {
+            params: {
+                country: code,
+                category: interest,
+                pageSize: 1,
+                page: page,
+                apiKey: apiKey
+            }
+        });
+
+        articles = response.data.articles;
+
+        // Fall back to the 'everything' query if no news found
+        if (!articles || articles.length === 0) {
+            response = await axios.get('https://newsapi.org/v2/everything', {
+                params: {
+                    q: interest,
+                    sortBy: 'popularity',
+                    pageSize: 1,
+                    page: page,
+                    apiKey: apiKey
+                }
+            });
+
+            articles = response.data.articles;
+        }
+
+        res.json({
+            category: interest, // Send the selected category name
+            news: articles
+        });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Server error" });
+    }
+};
 
 

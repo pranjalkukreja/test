@@ -157,19 +157,18 @@ exports.getWeeklyNewsByTag = async (req, res) => {
 
 exports.getTopNewsByCategory = async (req, res) => {
     try {
-        const { country } = req.query;
+        const { country, page } = req.query;
 
-        const categories = ['entertainment', 'business','general', 'health', 'science', 'sports', 'technology'];
+        const categories = ['entertainment', 'business', 'health', 'politics', 'science', 'sports', 'technology', 'food' ]; 
+
+        // Only consider the first 'page' number of categories
+        const categoriesToFetch = page ? categories.slice(0, page) : categories;
 
         // NewsAPI key
-        const apiKey = '04fc7417a23e435e9a53cccf862be2ca'; // Replace with your NewsAPI key
+        const apiKey = 'e1c3df52a3d9439fa286ef24c11de7b6'; // Replace with your NewsAPI key
 
-        // Start and end of the week
-        const startOfWeek = moment().startOf('week').toISOString();
-        const endOfWeek = moment().endOf('week').toISOString();
-
-        // Fetch top news for each category
-        const newsData = await Promise.all(categories.map(async (category) => {
+        // Fetch top news for each category within the page limit
+        const newsData = await Promise.all(categoriesToFetch.map(async (category) => {
             const response = await axios.get('https://newsapi.org/v2/top-headlines', {
                 params: {
                     country: country,
@@ -179,14 +178,17 @@ exports.getTopNewsByCategory = async (req, res) => {
                 }
             });
 
-            // Return the category and the news article
+            // If there's no article for a category, return null or an empty object
             return {
                 category: category,
-                news: response.data.articles[0] // Take the first article from the response
+                news: response.data.articles.length > 0 ? response.data.articles[0] : null // Take the first article from the response if it exists
             };
         }));
 
-        res.json(newsData);
+        // Filter out any categories that didn't have news to ensure the response only contains categories with news
+        const filteredNewsData = newsData.filter(item => item.news !== null);
+
+        res.json(filteredNewsData);
     } catch (error) {
         console.error("Error fetching top news by category:", error);
         res.status(500).json({ message: "Server error" });
