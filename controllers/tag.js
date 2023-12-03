@@ -50,7 +50,7 @@ exports.read = async (req, res) => {
                 category: tag.name, // Assuming 'name' is the field in the Tag model containing the tag's name
                 pageSize: 1,
                 page: page,
-                apiKey: '04fc7417a23e435e9a53cccf862be2ca' // Replace with your actual API key
+                apiKey: 'e1c3df52a3d9439fa286ef24c11de7b6' // Replace with your actual API key
             }
         });
 
@@ -64,7 +64,7 @@ exports.read = async (req, res) => {
                     sortBy: 'popularity',
                     pageSize: 1,
                     page: page,
-                    apiKey: '04fc7417a23e435e9a53cccf862be2ca' // Replace with your actual API key
+                    apiKey: 'e1c3df52a3d9439fa286ef24c11de7b6' // Replace with your actual API key
                 }
             });
 
@@ -103,31 +103,36 @@ exports.readFeatured = async (req, res) => {
 
 exports.readByInterests = async (req, res) => {
     const { code, page } = req.query;
-    let { interest } = req.body;  // Interest may not be provided
-
-    console.log(interest);
+    let { interest } = req.body;
 
     try {
-        const apiKey = '04fc7417a23e435e9a53cccf862be2ca'; // Replace with your actual API key
+        const apiKey = '04fc7417a23e435e9a53cccf862be2ca';
         let articles;
 
-        // If no interest is provided, fetch random category from the database
-        if (!interest) {
+        // Decide whether to use the user's interest or a random category
+        // 80% chance to use user's interest, 20% chance for random
+        const useUserInterest = !interest || Math.random() < 0.8;
+
+        if (!useUserInterest) {
+            // Fetch random category from the database
             const tags = await Tag.find({}).sort({ createdAt: -1 }).exec();
             if (tags.length > 0) {
                 const randomTag = tags[Math.floor(Math.random() * tags.length)];
-                interest = randomTag.name; // Assign a random tag name to interest
+                interest = randomTag.name;
             } else {
                 return res.status(404).json({ message: "No categories found" });
             }
         }
 
-        // Attempt to fetch top headlines for the given interest
+        console.log('ent', interest);
+        
+
+        // Fetch top headlines for the selected interest or random category
         let response = await axios.get('https://newsapi.org/v2/top-headlines', {
             params: {
                 country: code,
                 category: interest,
-                pageSize: 1,
+                pageSize: 1, 
                 page: page,
                 apiKey: apiKey
             }
@@ -135,7 +140,7 @@ exports.readByInterests = async (req, res) => {
 
         articles = response.data.articles;
 
-        // Fall back to the 'everything' query if no news found
+        // Fall back to 'everything' query if no news found
         if (!articles || articles.length === 0) {
             response = await axios.get('https://newsapi.org/v2/everything', {
                 params: {
@@ -151,8 +156,9 @@ exports.readByInterests = async (req, res) => {
         }
 
         res.json({
-            category: interest, // Send the selected category name
-            news: articles
+            category: interest,
+            news: articles,
+            usedUserInterest: useUserInterest
         });
 
     } catch (error) {
@@ -160,5 +166,3 @@ exports.readByInterests = async (req, res) => {
         res.status(500).json({ message: "Server error" });
     }
 };
-
-

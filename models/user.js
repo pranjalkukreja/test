@@ -38,7 +38,13 @@ const userSchema = new mongoose.Schema(
     wishlist: [{ type: ObjectId, ref: "Product" }],
     employee: { type: ObjectId, ref: "Employee" },
     expoToken: String,
-    paymentIntent: {}
+    paymentIntent: {},
+    likes: [{ type: ObjectId, ref: "Article" }],
+    interestScores: {
+      type: Map,
+      of: Number,
+      default: {}
+  },
   },
   { timestamps: true }
 );

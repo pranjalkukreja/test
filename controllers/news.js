@@ -5,6 +5,8 @@ const moment = require('moment');
 const mongoose = require('mongoose');
 const natural = require('natural');
 const axios = require('axios');
+const Article = require('../models/article');
+const User = require('../models/user');
 
 exports.create = async (req, res) => {
     try {
@@ -194,3 +196,55 @@ exports.getTopNewsByCategory = async (req, res) => {
         res.status(500).json({ message: "Server error" });
     }
 };
+
+exports.likePost = async (req, res) => {
+    try {
+        const { article, interest, isLiked } = req.body; // 'isLiked' tells whether the user is liking or unliking the article
+
+        const customer = await User.findOne({ email: req.user.email }).exec();
+        const userId = customer._id;
+
+        // Check if the article already exists
+        let foundArticle = await Article.findOne({ url: article.url });
+
+        if (!foundArticle) {
+            // Create a new article if it doesn't exist
+            foundArticle = await new Article(article).save();
+        }
+
+        // Update the user's likes based on whether the article is being liked or unliked
+        if (isLiked) {
+            // User is liking the article
+            await User.findByIdAndUpdate(
+                userId,
+                { $addToSet: { likes: foundArticle._id } },
+                { new: true }
+            );
+            // Increment the score for the category
+            await User.findByIdAndUpdate(
+                userId,
+                { $inc: { [`interestScores.${interest}`]: 1 } },
+                { new: true }
+            );
+        } else {
+            // User is unliking the article
+            await User.findByIdAndUpdate(
+                userId,
+                { $pull: { likes: foundArticle._id } },
+                { new: true }
+            );
+            // Decrement the score for the category, ensuring it doesn't go below zero
+         
+        }
+
+        res.json({ message: isLiked ? 'Article liked' : 'Article unliked' });
+
+    } catch (error) {
+        console.error("Error in likePost function:", error);
+        return res.status(500).json({
+            message: "Error processing like/unlike",
+            error: error
+        });
+    }
+};
+
