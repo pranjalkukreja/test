@@ -1,6 +1,21 @@
 const mongoose = require("mongoose");
 const { ObjectId } = mongoose.Schema;
 
+const activityLogSchema = new mongoose.Schema({
+  article: {
+    type: String,
+    required: true
+  },
+  date: {
+    type: Date,
+    default: Date.now
+  },
+  timeSpent: {
+    type: Number,
+    required: true
+  }
+}, { _id: false });
+
 const userSchema = new mongoose.Schema(
   {
     name: String,
@@ -45,6 +60,8 @@ const userSchema = new mongoose.Schema(
       of: Number,
       default: {}
   },
+  activityLog: [activityLogSchema],
+
   },
   { timestamps: true }
 );

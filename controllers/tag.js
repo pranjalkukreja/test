@@ -50,7 +50,7 @@ exports.read = async (req, res) => {
                 category: tag.name, // Assuming 'name' is the field in the Tag model containing the tag's name
                 pageSize: 1,
                 page: page,
-                apiKey: 'e1c3df52a3d9439fa286ef24c11de7b6' // Replace with your actual API key
+                apiKey: '04fc7417a23e435e9a53cccf862be2ca' // Replace with your actual API key
             }
         });
 
@@ -64,7 +64,7 @@ exports.read = async (req, res) => {
                     sortBy: 'popularity',
                     pageSize: 1,
                     page: page,
-                    apiKey: 'e1c3df52a3d9439fa286ef24c11de7b6' // Replace with your actual API key
+                    apiKey: '04fc7417a23e435e9a53cccf862be2ca' // Replace with your actual API key
                 }
             });
 
