@@ -6,13 +6,14 @@ const router = express.Router();
 const { authCheck, adminCheck, driverCheck, storeChargeCheck, cashierCheck, logisticCheck, accountsCheck } = require("../middlewares/auth");
 
 // controller
-const { createOrUpdateUser, currentUser, createOrUpdateUserNumber, getFavorites, recordActivity } = require("../controllers/auth");
+const { createOrUpdateUser, currentUser, createOrUpdateUserNumber, getFavorites, recordActivity, readUserDetails } = require("../controllers/auth");
 
 router.post("/create-or-update-user", authCheck, createOrUpdateUser);
 router.post("/create-or-update-user-phone", authCheck, createOrUpdateUserNumber);
 router.post("/current-user", authCheck, currentUser);
 router.get("/user-favorites", getFavorites);
 router.post("/update-user-record", authCheck, recordActivity);
+router.get("/user-timing", readUserDetails);
 
 
 module.exports = router;

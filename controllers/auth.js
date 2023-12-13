@@ -1,5 +1,6 @@
 const User = require("../models/user");
 const Article = require('../models/article');
+const mongoose = require("mongoose");
 
 exports.createOrUpdateUser = async (req, res) => {
   const { picture, email, phone_number } = req.user;
@@ -74,26 +75,26 @@ exports.getFavorites = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    const likedArticles = userWithLikes.likes; // Array of Article documents
+    const likedArticles = userWithLikes.likes.reverse(); // Reverse the array of Article documents
 
-    // Transform the data as needed for the frontend
     const articlesToSend = likedArticles.map(article => ({
-      // Extract relevant article fields
       _id: article._id,
       title: article.title,
       description: article.description,
       url: article.url,
       urlToImage: article.urlToImage,
-      // ... other fields you might need
     }));
 
     res.json({ favorites: articlesToSend });
 
   } catch (err) {
-    console.log(err);
+    console.error(err);
     res.status(400).json({ err: err.message });
   }
 };
+
+
+
 
 exports.recordActivity = async (req, res) => {
   const { articleTitle, timeSpent } = req.body.record;
@@ -132,3 +133,31 @@ exports.recordActivity = async (req, res) => {
     res.status(400).json({ err: err.message });
   }
 };
+
+exports.readUserDetails = async (req, res) => {
+  const { userId } = req.query;
+  try {
+    const user = await User.findOne({ _id: userId }).exec();
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Get today's date at start (00:00:00)
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+
+    // Count the number of articles read today
+    const todaysRead = user.activityLog.filter(activity => 
+      new Date(activity.date).getTime() >= startOfToday.getTime()
+    ).length;
+
+    // Count the total number of articles read
+    const totalRead = user.activityLog.length;
+
+    res.json({ todaysRead: todaysRead, totalRead: totalRead });
+  } catch (err) {
+    console.error(err);
+    res.status(400).json({ err: err.message });
+  }
+};
+
