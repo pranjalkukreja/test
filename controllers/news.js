@@ -161,7 +161,7 @@ exports.getTopNewsByCategory = async (req, res) => {
     try {
         const { country, page } = req.query;
 
-        const categories = ['entertainment', 'business', 'health', 'politics', 'science', 'sports', 'technology', 'food' ]; 
+        const categories = ['entertainment', 'business', 'health', 'politics', 'science', 'sports', 'technology', 'food'];
 
         // Only consider the first 'page' number of categories
         const categoriesToFetch = page ? categories.slice(0, page) : categories;
@@ -189,6 +189,14 @@ exports.getTopNewsByCategory = async (req, res) => {
 
         // Filter out any categories that didn't have news to ensure the response only contains categories with news
         const filteredNewsData = newsData.filter(item => item.news !== null);
+
+        // Filter out articles with '[Removed]'
+        // filteredNewsData = filteredNewsData.filter(article => {
+        //     return article.title !== '[Removed]' &&
+        //         article.description !== '[Removed]' &&
+        //         article.content !== '[Removed]';
+        // });
+
 
         res.json(filteredNewsData);
     } catch (error) {
@@ -234,7 +242,7 @@ exports.likePost = async (req, res) => {
                 { new: true }
             );
             // Decrement the score for the category, ensuring it doesn't go below zero
-         
+
         }
 
         res.json({ message: isLiked ? 'Article liked' : 'Article unliked' });
@@ -248,3 +256,99 @@ exports.likePost = async (req, res) => {
     }
 };
 
+exports.updateUserInterest = async (req, res) => {
+    try {
+        const { userId, interestName } = req.body;
+
+        // Assuming you want to increment the score for the given interest
+        const updatedUser = await User.findByIdAndUpdate(
+            userId,
+            { $inc: { [`interestScores.${interestName}`]: 1 } },
+            { new: true }
+        );
+
+        if (!updatedUser) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        res.json({ message: "Interest updated successfully", user: updatedUser });
+    } catch (error) {
+        console.error("Error in updateUserInterest function:", error);
+        return res.status(500).json({
+            message: "Error updating interest",
+            error: error
+        });
+    }
+};
+
+exports.refreshUserInterest = async (req, res) => {
+    try {
+        const { userId, interestScores } = req.body;
+        const user = await User.findById(userId);
+
+        if (!user) {
+            return res.status(404).send('User not found');
+        }
+
+        // Update the user's interest scores
+        user.interestScores = interestScores;
+        await user.save();
+
+        res.send('Interest scores updated successfully');
+    } catch (error) {
+        res.status(500).send('Error updating interest scores');
+    }
+};
+
+exports.weatherSearch = async (req, res) => {
+    const { city } = req.query;
+    try {
+        const cityName = city;
+        const apiKey = '13ceccb2332d4493849112500241701'; 
+        const url = `http://api.weatherapi.com/v1/current.json?key=${apiKey}&q=${cityName}`;
+
+        const response = await axios.get(url);
+        const weatherData = translateWeatherData(response.data);
+
+        console.log('Weather Data:', weatherData);
+
+        res.json(weatherData);
+    } catch (error) {
+        // Handle the error appropriately
+        res.status(500).send('Error fetching weather data');
+    }
+};
+
+function translateWeatherData(weatherData) {
+    const { location, current } = weatherData;
+
+    return {
+        location: `${location.name}, ${location.region}, ${location.country}`,
+        lastUpdated: current.last_updated,
+        temperatureC: current.temp_c,
+        temperatureF: current.temp_f,
+        feelsLikeC: current.feelslike_c,
+        feelsLikeF: current.feelslike_f,
+        condition: current.condition.text,
+        windKph: current.wind_kph,
+        windMph: current.wind_mph,
+        windDir: current.wind_dir,
+        pressureMb: current.pressure_mb,
+        pressureIn: current.pressure_in,
+        humidity: current.humidity,
+        visibilityKm: current.vis_km,
+        visibilityMiles: current.vis_miles,
+        uvIndex: current.uv,
+        uvCategory: uvIndexCategory(current.uv),
+        precipitationMm: current.precip_mm,
+        cloudCover: current.cloud
+    };
+}
+
+function uvIndexCategory(uvIndex) {
+    if (uvIndex < 3) return 'low';
+    if (uvIndex < 6) return 'moderate';
+    if (uvIndex < 8) return 'high';
+    if (uvIndex < 11) return 'very high';
+    return 'extreme';
+}

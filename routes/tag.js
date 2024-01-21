@@ -10,14 +10,19 @@ const {
     saveTags,
     read,
     readFeatured,
-    readByInterests
+    readByInterests,
+    create, 
+    update,
+    readTag
   } = require("../controllers/tag");
 
+  router.post('/tag-create', authCheck, adminCheck, create)
   router.get("/tags", list);
   router.post('/tag-update', saveTags)
   router.get("/tag/:slug", read);
   router.get("/tags-featured", readFeatured);
   router.post("/tags-interests", readByInterests);
-
+  router.get("/read-tag/:slug", readTag);
+  router.put('/update-tags/:slug', authCheck, adminCheck, update);
 
   module.exports = router;

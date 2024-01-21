@@ -11,7 +11,10 @@ const {
     saveNews,
     getWeeklyNewsByTag,
     getTopNewsByCategory,
-    likePost
+    likePost,
+    updateUserInterest,
+    refreshUserInterest,
+    weatherSearch
   } = require("../controllers/news");
 
   router.post("/blog-create", authCheck, adminCheck, create);
@@ -20,5 +23,8 @@ const {
   router.get("/news-flash", getWeeklyNewsByTag);
   router.get('/flash-news', getTopNewsByCategory)
   router.post("/like-article", authCheck, likePost);
+  router.post('/update-interest', authCheck, updateUserInterest);
+  router.post('/refresh-interest', refreshUserInterest);
+  router.get("/weather-alert", weatherSearch);
 
   module.exports = router;

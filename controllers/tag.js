@@ -3,8 +3,40 @@ const News = require('../models/news')
 const axios = require('axios');
 
 
+exports.create = async (req, res) => {
+    try {
+        const { name } = req.body;
+        res.json(await new Tag(req.body).save());
+    } catch (err) {
+        // console.log(err);
+        res.status(400).send("Create Tag failed");
+    }
+};
+
+
 exports.list = async (req, res) =>
     res.json(await Tag.find({}).sort({ createdAt: -1 }).exec());
+
+
+exports.readTag = async (req, res) => {
+    let category = await Tag.findOne({ _id: req.params.slug }).exec();
+    // res.json(category);
+
+    return res.json(category);
+};
+
+exports.update = async (req, res) => {
+    try {
+        const updated = await Tag.findOneAndUpdate(
+            { _id: req.params.slug },
+            req.body,
+            { new: true }
+        );
+        res.json(updated);
+    } catch (err) {
+        res.status(400).send("Tag update failed");
+    }
+};
 
 
 exports.saveTags = async (req, res) => {
@@ -38,7 +70,7 @@ exports.read = async (req, res) => {
 
     try {
         let tag = await Tag.findOne({ _id: req.params.slug }).exec();
-        
+
         if (!tag) {
             return res.status(404).json({ message: "Tag not found" });
         }
@@ -125,14 +157,14 @@ exports.readByInterests = async (req, res) => {
         }
 
         console.log('ent', interest);
-        
+
 
         // Fetch top headlines for the selected interest or random category
         let response = await axios.get('https://newsapi.org/v2/top-headlines', {
             params: {
                 country: code,
                 category: interest,
-                pageSize: 1, 
+                pageSize: 1,
                 page: page,
                 apiKey: apiKey
             }

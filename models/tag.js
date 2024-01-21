@@ -8,10 +8,14 @@ const tagSchema = new mongoose.Schema({
       unique: true,
       trim: true
     },
+    emoji: String,
     icon: {
         type: String
     },
-    featured: Boolean
+    featured: {
+      type: Boolean,
+      default: false
+    }
   });
   
   module.exports = mongoose.model("Tag", tagSchema);
