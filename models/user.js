@@ -34,8 +34,8 @@ const userSchema = new mongoose.Schema(
       type: Array,
       default: [],
     },
-    address: String,
-    unitAddress: String,
+    city: String,
+    country: String,
     cityAddress: String,
     StateAddress: String,
     ZipAddress: String,
@@ -45,7 +45,7 @@ const userSchema = new mongoose.Schema(
       default: 0
     },
     orders: Number,
-    customerLogs: [{type: String}],
+    customerLogs: [{ type: String }],
     giftReceived: Boolean,
     customCode: String,
     referralPoints: Number,
@@ -59,8 +59,9 @@ const userSchema = new mongoose.Schema(
       type: Map,
       of: Number,
       default: {}
-  },
-  activityLog: [activityLogSchema],
+    },
+    activityLog: [activityLogSchema],
+    tags: [{ tag: { type: ObjectId, ref: "Tag" }, score: Number }]
 
   },
   { timestamps: true }

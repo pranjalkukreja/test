@@ -143,7 +143,7 @@ exports.readByInterests = async (req, res) => {
 
         // Decide whether to use the user's interest or a random category
         // 80% chance to use user's interest, 20% chance for random
-        const useUserInterest = !interest || Math.random() < 0.8;
+        const useUserInterest = !interest || Math.random() < 0.4;
 
         if (!useUserInterest) {
             // Fetch random category from the database

@@ -207,42 +207,57 @@ exports.getTopNewsByCategory = async (req, res) => {
 
 exports.likePost = async (req, res) => {
     try {
-        const { article, interest, isLiked } = req.body; // 'isLiked' tells whether the user is liking or unliking the article
+        const { article, interest, isLiked } = req.body;
 
         const customer = await User.findOne({ email: req.user.email }).exec();
         const userId = customer._id;
 
-        // Check if the article already exists
         let foundArticle = await Article.findOne({ url: article.url });
 
         if (!foundArticle) {
-            // Create a new article if it doesn't exist
             foundArticle = await new Article(article).save();
         }
 
-        // Update the user's likes based on whether the article is being liked or unliked
         if (isLiked) {
-            // User is liking the article
             await User.findByIdAndUpdate(
                 userId,
                 { $addToSet: { likes: foundArticle._id } },
                 { new: true }
             );
-            // Increment the score for the category
-            await User.findByIdAndUpdate(
-                userId,
-                { $inc: { [`interestScores.${interest}`]: 1 } },
-                { new: true }
-            );
+
+            const tag = await Tag.findOne({ name: interest });
+
+            if (tag) {
+                const user = await User.findById(userId);
+
+                const tagExists = user.tags.some(t => t.tag.toString() === tag._id.toString());
+
+                if (tagExists) {
+                    // Increment the score for the tag
+                    await User.findByIdAndUpdate(
+                        userId,
+                        { $inc: { "tags.$[elem].score": 1 } },
+                        { 
+                            arrayFilters: [{ "elem.tag": tag._id }],
+                            new: true 
+                        }
+                    );
+                } else {
+                    // Add the tag with an initial score
+                    await User.findByIdAndUpdate(
+                        userId,
+                        { $push: { tags: { tag: tag._id, score: 1 } } },
+                        { new: true }
+                    );
+                }
+            }
         } else {
-            // User is unliking the article
             await User.findByIdAndUpdate(
                 userId,
                 { $pull: { likes: foundArticle._id } },
                 { new: true }
             );
-            // Decrement the score for the category, ensuring it doesn't go below zero
-
+            // Logic for unliking can be similarly adjusted
         }
 
         res.json({ message: isLiked ? 'Article liked' : 'Article unliked' });
@@ -260,18 +275,43 @@ exports.updateUserInterest = async (req, res) => {
     try {
         const { userId, interestName } = req.body;
 
-        // Assuming you want to increment the score for the given interest
-        const updatedUser = await User.findByIdAndUpdate(
-            userId,
-            { $inc: { [`interestScores.${interestName}`]: 1 } },
-            { new: true }
-        );
+        // Find the tag by its name (interestName)
+        const tag = await Tag.findOne({ name: interestName });
 
-        if (!updatedUser) {
+        if (!tag) {
+            // Handle the case where the tag doesn't exist
+            return res.status(404).json({ message: "Tag not found" });
+        }
+
+        const user = await User.findById(userId);
+
+        if (!user) {
             return res.status(404).json({ message: "User not found" });
         }
 
-        res.json({ message: "Interest updated successfully", user: updatedUser });
+        const tagExists = user.tags.some(t => t.tag.toString() === tag._id.toString());
+
+        if (tagExists) {
+            // Increment the score for the tag
+            await User.findByIdAndUpdate(
+                userId,
+                { $inc: { "tags.$[elem].score": 1 } },
+                { 
+                    arrayFilters: [{ "elem.tag": tag._id }],
+                    new: true 
+                }
+            );
+        } else {
+            // Add the tag with an initial score
+            await User.findByIdAndUpdate(
+                userId,
+                { $push: { tags: { tag: tag._id, score: 1 } } },
+                { new: true }
+            );
+        }
+
+        res.json({ message: "Interest updated successfully" });
+
     } catch (error) {
         console.error("Error in updateUserInterest function:", error);
         return res.status(500).json({
@@ -280,6 +320,7 @@ exports.updateUserInterest = async (req, res) => {
         });
     }
 };
+
 
 exports.refreshUserInterest = async (req, res) => {
     try {
