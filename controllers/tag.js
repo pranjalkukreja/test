@@ -135,31 +135,35 @@ exports.readFeatured = async (req, res) => {
 
 exports.readByInterests = async (req, res) => {
     const { code, page } = req.query;
-    let { interest } = req.body;
+    let { interest } = req.body.interest;
+
+    console.log(interest);
 
     try {
         const apiKey = '04fc7417a23e435e9a53cccf862be2ca';
         let articles;
 
-        // Decide whether to use the user's interest or a random category
-        // 80% chance to use user's interest, 20% chance for random
-        const useUserInterest = !interest || Math.random() < 0.4;
+        const tags = await Tag.find({}).sort({ createdAt: -1 }).exec();
 
-        if (!useUserInterest) {
-            // Fetch random category from the database
-            const tags = await Tag.find({}).sort({ createdAt: -1 }).exec();
+        // Check if interest is null and fetch a random tag if it is
+        if (interest === 'null') {
             if (tags.length > 0) {
                 const randomTag = tags[Math.floor(Math.random() * tags.length)];
                 interest = randomTag.name;
             } else {
                 return res.status(404).json({ message: "No categories found" });
             }
+        } else {
+            if (Math.random() > 0.75 && tags.length > 0) {
+                // Pick a random tag from the tags array
+                const randomTag = tags[Math.floor(Math.random() * tags.length)];
+                interest = randomTag.name;
+            }
         }
 
-        console.log('ent', interest);
+        console.log('Selected Interest:', interest);
 
-
-        // Fetch top headlines for the selected interest or random category
+        // Fetch top headlines for the selected interest
         let response = await axios.get('https://newsapi.org/v2/top-headlines', {
             params: {
                 country: code,
@@ -189,8 +193,7 @@ exports.readByInterests = async (req, res) => {
 
         res.json({
             category: interest,
-            news: articles,
-            usedUserInterest: useUserInterest
+            news: articles
         });
 
     } catch (error) {

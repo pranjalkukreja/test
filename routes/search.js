@@ -7,10 +7,11 @@ const { authCheck, adminCheck } = require("../middlewares/auth");
 // controller
 const {
     recordSearchTerm,
-    getSearchStats,
+    getSearchReport,
   } = require("../controllers/search");
 
   router.post("/search-loop", recordSearchTerm);
-  
+  router.get("/loop-trending", getSearchReport);
+
 
   module.exports = router;
