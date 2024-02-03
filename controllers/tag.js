@@ -168,7 +168,7 @@ exports.readByInterests = async (req, res) => {
             params: {
                 country: code,
                 category: interest,
-                pageSize: 1,
+                pageSize: 2,
                 page: page,
                 apiKey: apiKey
             }
@@ -182,7 +182,7 @@ exports.readByInterests = async (req, res) => {
                 params: {
                     q: interest,
                     sortBy: 'popularity',
-                    pageSize: 1,
+                    pageSize: 2,
                     page: page,
                     apiKey: apiKey
                 }
