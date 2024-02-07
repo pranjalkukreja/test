@@ -1,5 +1,6 @@
 const User = require("../models/user");
 const Article = require('../models/article');
+const Guest = require('../models/guest');
 const mongoose = require("mongoose");
 
 exports.createOrUpdateUser = async (req, res) => {
@@ -25,6 +26,54 @@ exports.createOrUpdateUser = async (req, res) => {
   }
 };
 
+exports.createGuest = async (req, res) => {
+  const { uniqueId } = req.body;
+
+  // Check if the uniqueId already exists in the database
+  const existingGuest = await Guest.findOne({ uniqueId });
+
+  if (existingGuest) {
+    return res.status(400).json({ error: 'Unique ID already exists' });
+  }
+
+  // Create a new guest document with the uniqueId
+  const newGuest = new Guest({ uniqueId });
+
+  try {
+    // Save the new guest document to the database
+    await newGuest.save();
+    return res.status(201).json({ message: 'Guest created successfully' });
+  } catch (error) {
+    console.error('Error saving guest to database:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+}
+
+exports.updateGuestLocation = async (req, res) => {
+  const { uniqueId, city, country, countryCode } = req.body;
+
+  try {
+    // Find the guest profile by uniqueId
+    const guest = await Guest.findOne({ uniqueId });
+
+    // If guest profile doesn't exist, return error
+    if (!guest) {
+      return res.status(404).json({ error: 'Guest profile not found' });
+    }
+
+    // Update the city and country fields in the guest profile
+    guest.city = city;
+    guest.country = country;
+    guest.countryCode = countryCode;
+    // Save the updated guest profile
+    await guest.save();
+
+    return res.status(200).json({ message: 'Location data saved successfully' });
+  } catch (error) {
+    console.error('Error saving location data:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+}
 
 exports.createOrUpdateUserNumber = async (req, res) => {
   const { phone_number } = req.user

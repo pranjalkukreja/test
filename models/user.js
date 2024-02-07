@@ -61,7 +61,12 @@ const userSchema = new mongoose.Schema(
       default: {}
     },
     activityLog: [activityLogSchema],
-    tags: [{ tag: { type: ObjectId, ref: "Tag" }, score: Number }]
+    tags: [{ tag: { type: ObjectId, ref: "Tag" }, score: Number }],
+    guestId: {
+      type: ObjectId,
+      ref: 'Guest',
+      required: false
+  }
 
   },
   { timestamps: true }
