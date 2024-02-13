@@ -28,33 +28,32 @@ exports.createOrUpdateUser = async (req, res) => {
 
 exports.createGuest = async (req, res) => {
   const { uniqueId } = req.body;
-
   // Check if the uniqueId already exists in the database
-  const existingGuest = await Guest.findOne({ uniqueId });
+  const existingGuest = await Guest.findOne({ appId: uniqueId });
 
   if (existingGuest) {
     return res.status(400).json({ error: 'Unique ID already exists' });
   }
 
   // Create a new guest document with the uniqueId
-  const newGuest = new Guest({ uniqueId });
+  const newGuest = new Guest({ appId: uniqueId });
 
   try {
     // Save the new guest document to the database
     await newGuest.save();
-    return res.status(201).json({ message: 'Guest created successfully' });
+    return res.status(201).json({ success: true, message: 'Guest created successfully' });
   } catch (error) {
     console.error('Error saving guest to database:', error);
-    return res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ success: false, error: 'Internal server error' });
   }
 }
 
 exports.updateGuestLocation = async (req, res) => {
   const { uniqueId, city, country, countryCode } = req.body;
-
+  console.log('yeet', req.body);
   try {
     // Find the guest profile by uniqueId
-    const guest = await Guest.findOne({ uniqueId });
+    const guest = await Guest.findOne({ appId: uniqueId });
 
     // If guest profile doesn't exist, return error
     if (!guest) {
@@ -74,6 +73,7 @@ exports.updateGuestLocation = async (req, res) => {
     return res.status(500).json({ error: 'Internal server error' });
   }
 }
+
 
 exports.createOrUpdateUserNumber = async (req, res) => {
   const { phone_number } = req.user

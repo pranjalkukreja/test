@@ -66,7 +66,7 @@ exports.saveTags = async (req, res) => {
 
 
 exports.read = async (req, res) => {
-    const { code, page } = req.query;
+    const { country, code, page } = req.query;
 
     try {
         let tag = await Tag.findOne({ _id: req.params.slug }).exec();
@@ -74,34 +74,34 @@ exports.read = async (req, res) => {
         if (!tag) {
             return res.status(404).json({ message: "Tag not found" });
         }
-
+        console.log(tag.name, code);
         // First, try fetching top headlines
         let response = await axios.get('https://newsapi.org/v2/top-headlines', {
             params: {
+                category: tag.name,
                 country: code,
-                category: tag.name, // Assuming 'name' is the field in the Tag model containing the tag's name
                 pageSize: 1,
                 page: page,
-                apiKey: '04fc7417a23e435e9a53cccf862be2ca' // Replace with your actual API key
+                apiKey: '5eb6c1d605ff4d1aaef0a0753bc437c0' // Replace with your actual API key
             }
         });
 
         let news = response.data.articles;
 
-        // If top headlines query returns no news, use the everything query
         if (!news || news.length === 0) {
             response = await axios.get('https://newsapi.org/v2/everything', {
                 params: {
-                    q: tag.name, // Assuming 'name' is the field in the Tag model containing the tag's name
-                    sortBy: 'popularity',
+                    q: `${tag.name} AND ${country}`,
+                    sortBy: 'publishedAt',
                     pageSize: 1,
                     page: page,
-                    apiKey: '04fc7417a23e435e9a53cccf862be2ca' // Replace with your actual API key
+                    apiKey: '5eb6c1d605ff4d1aaef0a0753bc437c0' // Replace with your actual API key
                 }
             });
 
             news = response.data.articles;
         }
+        
 
         res.json({
             tag: tag,
@@ -134,13 +134,13 @@ exports.readFeatured = async (req, res) => {
 }
 
 exports.readByInterests = async (req, res) => {
-    const { code, page } = req.query;
+    const { country, code, page } = req.query;
     let { interest } = req.body.interest;
 
-    console.log(interest);
+    console.log('balle', req.query);
 
     try {
-        const apiKey = '04fc7417a23e435e9a53cccf862be2ca';
+        const apiKey = '5eb6c1d605ff4d1aaef0a0753bc437c0';
         let articles;
 
         const tags = await Tag.find({}).sort({ createdAt: -1 }).exec();
@@ -154,7 +154,7 @@ exports.readByInterests = async (req, res) => {
                 return res.status(404).json({ message: "No categories found" });
             }
         } else {
-            if (Math.random() > 0.75 && tags.length > 0) {
+            if (Math.random() > 0.5 && tags.length > 0) {
                 // Pick a random tag from the tags array
                 const randomTag = tags[Math.floor(Math.random() * tags.length)];
                 interest = randomTag.name;
@@ -166,8 +166,8 @@ exports.readByInterests = async (req, res) => {
         // Fetch top headlines for the selected interest
         let response = await axios.get('https://newsapi.org/v2/top-headlines', {
             params: {
+                category: `${interest}`,
                 country: code,
-                category: interest,
                 pageSize: 2,
                 page: page,
                 apiKey: apiKey
@@ -175,15 +175,19 @@ exports.readByInterests = async (req, res) => {
         });
 
         articles = response.data.articles;
+        console.log('eturgrul', response.data);
 
         // Fall back to 'everything' query if no news found
         if (!articles || articles.length === 0) {
+            console.log('everything news');
             response = await axios.get('https://newsapi.org/v2/everything', {
                 params: {
-                    q: interest,
-                    sortBy: 'popularity',
+                    q: `${interest} AND ${country}`,
+                    // country: code,
+                    sortBy: 'publishedAt',
                     pageSize: 2,
                     page: page,
+                    language: 'en',
                     apiKey: apiKey
                 }
             });

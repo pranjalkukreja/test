@@ -8,14 +8,18 @@ const tagSchema = new mongoose.Schema({
       unique: true,
       trim: true
     },
-    emoji: String,
+    emoji: {
+      type: String,
+      default: '📰'
+    },
     icon: {
         type: String
     },
     featured: {
       type: Boolean,
       default: false
-    }
+    },
+    countryCode: [String]
   });
   
   module.exports = mongoose.model("Tag", tagSchema);
