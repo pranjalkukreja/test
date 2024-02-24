@@ -27,21 +27,14 @@ exports.createOrUpdateUser = async (req, res) => {
 };
 
 exports.createGuest = async (req, res) => {
-  const { uniqueId } = req.body;
   // Check if the uniqueId already exists in the database
-  const existingGuest = await Guest.findOne({ appId: uniqueId });
-
-  if (existingGuest) {
-    return res.status(400).json({ error: 'Unique ID already exists' });
-  }
 
   // Create a new guest document with the uniqueId
-  const newGuest = new Guest({ appId: uniqueId });
-
   try {
     // Save the new guest document to the database
-    await newGuest.save();
-    return res.status(201).json({ success: true, message: 'Guest created successfully' });
+    const newGuest = await new Guest().save();
+    console.log(newGuest);
+    return res.status(201).json({ success: true, message: 'Guest created successfully', id: newGuest._id });
   } catch (error) {
     console.error('Error saving guest to database:', error);
     return res.status(500).json({ success: false, error: 'Internal server error' });

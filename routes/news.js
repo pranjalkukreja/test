@@ -14,7 +14,8 @@ const {
     likePost,
     updateUserInterest,
     refreshUserInterest,
-    weatherSearch
+    weatherSearch,
+    weatherForecastSearchSimple
   } = require("../controllers/news");
 
   router.post("/blog-create", authCheck, adminCheck, create);
@@ -26,5 +27,6 @@ const {
   router.post('/update-interest', authCheck, updateUserInterest);
   router.post('/refresh-interest', refreshUserInterest);
   router.get("/weather-alert", weatherSearch);
+  router.get("/weekly-weather", weatherForecastSearchSimple);
 
   module.exports = router;

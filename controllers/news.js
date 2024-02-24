@@ -393,3 +393,39 @@ function uvIndexCategory(uvIndex) {
     if (uvIndex < 11) return 'very high';
     return 'extreme';
 }
+
+
+exports.weatherForecastSearchSimple = async (req, res) => {
+    const { city } = req.query;
+    try {
+        const cityName = city;
+        const apiKey = '13ceccb2332d4493849112500241701';
+        const url = `http://api.weatherapi.com/v1/forecast.json?key=${apiKey}&q=${cityName}&days=7`;
+
+        const response = await axios.get(url);
+        const simpleForecastData = translateSimpleForecastData(response.data);
+
+        console.log('Simple Forecast Data:', simpleForecastData);
+
+        res.json(simpleForecastData);
+    } catch (error) {
+        res.status(500).send('Error fetching forecast data');
+    }
+};
+
+function translateSimpleForecastData(forecastData) {
+    const { location, forecast } = forecastData;
+    const simpleFormattedForecast = forecast.forecastday.map(day => ({
+        date: day.date,
+        maxTempC: day.day.maxtemp_c,
+        minTempC: day.day.mintemp_c,
+        maxTempF: day.day.maxtemp_f,
+        minTempF: day.day.mintemp_f,
+        condition: day.day.condition.text, // Including the condition text in the data
+    }));
+
+    return {
+        location: `${location.name}, ${location.region}, ${location.country}`,
+        forecast: simpleFormattedForecast
+    };
+}

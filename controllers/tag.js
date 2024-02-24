@@ -74,7 +74,7 @@ exports.read = async (req, res) => {
         if (!tag) {
             return res.status(404).json({ message: "Tag not found" });
         }
-        console.log(tag.name, code);
+        console.log(tag.name, code, country);
         // First, try fetching top headlines
         let response = await axios.get('https://newsapi.org/v2/top-headlines', {
             params: {
@@ -197,6 +197,37 @@ exports.readByInterests = async (req, res) => {
 
         res.json({
             category: interest,
+            news: articles
+        });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+
+exports.readLocalNews = async (req, res) => {
+    const { city, country  } = req.query;
+
+    console.log('balle', req.query);
+
+    try {
+        const apiKey = '5eb6c1d605ff4d1aaef0a0753bc437c0';
+
+            response = await axios.get('https://newsapi.org/v2/everything', {
+                params: {
+                    q: `${city} AND ${country}`,
+                    sortBy: 'publishedAt',
+                    pageSize: 5,
+                    language: 'en',
+                    apiKey: apiKey
+                }
+            });
+
+           let articles = response.data.articles;
+
+        res.json({
             news: articles
         });
 
