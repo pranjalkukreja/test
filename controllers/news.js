@@ -421,7 +421,8 @@ function translateSimpleForecastData(forecastData) {
         minTempC: day.day.mintemp_c,
         maxTempF: day.day.maxtemp_f,
         minTempF: day.day.mintemp_f,
-        condition: day.day.condition.text, // Including the condition text in the data
+        condition: day.day.condition.text,
+        iconUrl: `https:${day.day.condition.icon}`, // Construct the icon URL
     }));
 
     return {

@@ -19,7 +19,11 @@ const tagSchema = new mongoose.Schema({
       type: Boolean,
       default: false
     },
-    countryCode: [String]
+    countryCode: [String],
+    trendScore: [{
+      date: Date,
+      score: Number
+    }]
   });
   
   module.exports = mongoose.model("Tag", tagSchema);

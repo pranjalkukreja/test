@@ -1,6 +1,7 @@
 const Tag = require("../models/tag");
 const News = require('../models/news')
 const axios = require('axios');
+const mongoose = require("mongoose");
 
 
 exports.create = async (req, res) => {
@@ -101,7 +102,7 @@ exports.read = async (req, res) => {
 
             news = response.data.articles;
         }
-        
+
 
         res.json({
             tag: tag,
@@ -208,29 +209,96 @@ exports.readByInterests = async (req, res) => {
 
 
 exports.readLocalNews = async (req, res) => {
-    const { city, country  } = req.query;
+    const { city, country } = req.query;
 
     console.log('balle', req.query);
 
     try {
         const apiKey = '5eb6c1d605ff4d1aaef0a0753bc437c0';
 
-            response = await axios.get('https://newsapi.org/v2/everything', {
-                params: {
-                    q: `${city} AND ${country}`,
-                    sortBy: 'publishedAt',
-                    pageSize: 5,
-                    language: 'en',
-                    apiKey: apiKey
-                }
-            });
+        response = await axios.get('https://newsapi.org/v2/everything', {
+            params: {
+                q: `${city} AND ${country}`,
+                sortBy: 'publishedAt',
+                pageSize: 5,
+                language: 'en',
+                apiKey: apiKey
+            }
+        });
 
-           let articles = response.data.articles;
+        let articles = response.data.articles;
 
         res.json({
             news: articles
         });
 
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+exports.updateTagStats = async (req, res) => {
+    try {
+        const { tagId } = req.body;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Normalize today's date to midnight for consistency
+
+        // Convert tagId to ObjectId if necessary
+        const objectId = mongoose.Types.ObjectId(tagId);
+
+        // First, attempt to update if today's score exists
+        let result = await Tag.updateOne(
+            { _id: objectId, "trendScore.date": { $eq: today } },
+            { $inc: { "trendScore.$.score": 1 } }
+        );
+
+        // If today's date score doesn't exist, add it
+        if (result.matchedCount === 0) {
+            result = await Tag.updateOne(
+                { _id: objectId },
+                { $push: { trendScore: { date: today, score: 1 } } },
+                { upsert: true } // This ensures the document is created if it doesn't exist, which should be unlikely given the context
+            );
+        }
+
+        console.log('result', result); // Log to debug
+        res.json({ ok: true });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+exports.getTrendingTags = async (req, res) => {
+    try {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        // Fetch tags that are trending today
+        let trendingTags = await Tag.aggregate([
+            { $match: { "trendScore.date": { $eq: today } } },
+            { $limit: 8 } // Assuming you define "trending" as having a trendScore for today
+        ]);
+
+        if (trendingTags.length < 8) {
+            // Calculate how many more tags are needed to make up 8
+            const tagsNeeded = 8 - trendingTags.length;
+
+            // Fetch random tags to make up the difference
+            // Note: $sample may return the same tags as in trendingTags. Additional logic needed to exclude them if necessary
+            const randomTags = await Tag.aggregate([
+                { $match: { _id: { $nin: trendingTags.map(tag => tag._id) } } }, // Exclude already selected trending tags
+                { $sample: { size: tagsNeeded } }
+            ]);
+
+            // Combine trending tags with random tags
+            trendingTags = trendingTags.concat(randomTags);
+        }
+
+        console.log(trendingTags);
+
+        res.json(trendingTags);
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: "Server error" });

@@ -46,7 +46,7 @@ exports.updateGuestLocation = async (req, res) => {
   console.log('yeet', req.body);
   try {
     // Find the guest profile by uniqueId
-    const guest = await Guest.findOne({ appId: uniqueId });
+    const guest = await Guest.findOne({ _id: uniqueId });
 
     // If guest profile doesn't exist, return error
     if (!guest) {
@@ -63,6 +63,31 @@ exports.updateGuestLocation = async (req, res) => {
     return res.status(200).json({ message: 'Location data saved successfully' });
   } catch (error) {
     console.error('Error saving location data:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+}
+
+exports.updateGuestNotifications = async (req, res) => {
+  const { Id, code } = req.body;
+  console.log('yeet', req.body);
+  try {
+    // Find the guest profile by uniqueId
+    const guest = await Guest.findOne({ _id: Id });
+
+    // If guest profile doesn't exist, return error
+    if (!guest) {
+      return res.status(404).json({ error: 'Guest profile not found' });
+    }
+
+    // Update the city and country fields in the guest profile
+    guest.expoKey = code;
+
+    // Save the updated guest profile
+    await guest.save();
+
+    return res.status(200).json({ success: true, message: 'Expo Key Saved successfully' });
+  } catch (error) {
+    console.error('Error saving key data:', error);
     return res.status(500).json({ error: 'Internal server error' });
   }
 }
