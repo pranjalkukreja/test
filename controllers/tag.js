@@ -103,7 +103,6 @@ exports.read = async (req, res) => {
             news = response.data.articles;
         }
 
-
         res.json({
             tag: tag,
             news: news
