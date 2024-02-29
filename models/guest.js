@@ -11,7 +11,11 @@ const guestSchema = new mongoose.Schema({
         type: ObjectId,
         ref: 'User',
         required: false
-    }
+    },
+    interestScore: [{
+        tag: { type: ObjectId, ref: "Tag" },
+        score: Number
+    }]
 });
 
 module.exports = mongoose.model("Guest", guestSchema);

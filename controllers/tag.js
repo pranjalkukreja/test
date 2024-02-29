@@ -1,5 +1,5 @@
 const Tag = require("../models/tag");
-const News = require('../models/news')
+const Guest = require('../models/guest')
 const axios = require('axios');
 const mongoose = require("mongoose");
 
@@ -81,9 +81,9 @@ exports.read = async (req, res) => {
             params: {
                 category: tag.name,
                 country: code,
-                pageSize: 1,
+                pageSize: 2,
                 page: page,
-                apiKey: '5eb6c1d605ff4d1aaef0a0753bc437c0' // Replace with your actual API key
+                apiKey: '4141c9c37c2d4c9492c3154692f316c1' // Replace with your actual API key
             }
         });
 
@@ -93,10 +93,10 @@ exports.read = async (req, res) => {
             response = await axios.get('https://newsapi.org/v2/everything', {
                 params: {
                     q: `${tag.name} AND ${country}`,
-                    sortBy: 'publishedAt',
-                    pageSize: 1,
+                    sortBy: 'relevancy',
+                    pageSize: 2,
                     page: page,
-                    apiKey: '5eb6c1d605ff4d1aaef0a0753bc437c0' // Replace with your actual API key
+                    apiKey: '4141c9c37c2d4c9492c3154692f316c1' // Replace with your actual API key
                 }
             });
 
@@ -140,7 +140,7 @@ exports.readByInterests = async (req, res) => {
     console.log('balle', req.query);
 
     try {
-        const apiKey = '5eb6c1d605ff4d1aaef0a0753bc437c0';
+        const apiKey = '619448c0e5c64ef597138852ad331cc6';
         let articles;
 
         const tags = await Tag.find({}).sort({ createdAt: -1 }).exec();
@@ -208,18 +208,19 @@ exports.readByInterests = async (req, res) => {
 
 
 exports.readLocalNews = async (req, res) => {
-    const { city, country } = req.query;
+    const { city, country, page, number } = req.query;
 
     console.log('balle', req.query);
 
     try {
-        const apiKey = '5eb6c1d605ff4d1aaef0a0753bc437c0';
+        const apiKey = '619448c0e5c64ef597138852ad331cc6';
 
         response = await axios.get('https://newsapi.org/v2/everything', {
             params: {
                 q: `${city} AND ${country}`,
                 sortBy: 'publishedAt',
-                pageSize: 5,
+                pageSize: page,
+                page: number,
                 language: 'en',
                 apiKey: apiKey
             }
@@ -239,14 +240,14 @@ exports.readLocalNews = async (req, res) => {
 
 exports.updateTagStats = async (req, res) => {
     try {
-        const { tagId } = req.body;
+        const { tagId, uniqueId } = req.body;
         const today = new Date();
         today.setHours(0, 0, 0, 0); // Normalize today's date to midnight for consistency
 
         // Convert tagId to ObjectId if necessary
         const objectId = mongoose.Types.ObjectId(tagId);
 
-        // First, attempt to update if today's score exists
+        // First, update the tag's trendScore
         let result = await Tag.updateOne(
             { _id: objectId, "trendScore.date": { $eq: today } },
             { $inc: { "trendScore.$.score": 1 } }
@@ -257,7 +258,23 @@ exports.updateTagStats = async (req, res) => {
             result = await Tag.updateOne(
                 { _id: objectId },
                 { $push: { trendScore: { date: today, score: 1 } } },
-                { upsert: true } // This ensures the document is created if it doesn't exist, which should be unlikely given the context
+                { upsert: true }
+            );
+        }
+
+        // Now, update the Guest's interestScore
+        const guestResult = await Guest.findOneAndUpdate(
+            { _id: uniqueId, "interestScore.tag": objectId },
+            { $inc: { "interestScore.$.score": 1 } },
+            { new: true }
+        );
+
+        // If the tag isn't found in the Guest's interestScore, add it
+        if (!guestResult) {
+            await Guest.findOneAndUpdate(
+                { _id: uniqueId },
+                { $push: { interestScore: { tag: objectId, score: 1 } } },
+                { new: true }
             );
         }
 
@@ -268,6 +285,7 @@ exports.updateTagStats = async (req, res) => {
         res.status(500).json({ message: "Server error" });
     }
 };
+
 
 exports.getTrendingTags = async (req, res) => {
     try {

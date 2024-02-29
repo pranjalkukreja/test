@@ -7,7 +7,7 @@ exports.recordSearchTerm = async (req, res) => {
   try {
     const { term, user, page } = req.body;
     const { country } = req.query;
-    const apiKey = '5eb6c1d605ff4d1aaef0a0753bc437c0';
+    const apiKey = '619448c0e5c64ef597138852ad331cc6';
 
     // Save the search term with the user ID only if it's the first page
     if (page === 1 || !page) {

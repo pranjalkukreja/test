@@ -69,7 +69,6 @@ exports.updateGuestLocation = async (req, res) => {
 
 exports.updateGuestNotifications = async (req, res) => {
   const { Id, code } = req.body;
-  console.log('yeet', req.body);
   try {
     // Find the guest profile by uniqueId
     const guest = await Guest.findOne({ _id: Id });
@@ -128,6 +127,31 @@ exports.currentUser = async (req, res) => {
       res.json(user);
     });
 };
+
+exports.updateUserInfo = async (req, res) => {
+  const { values } = req.body;
+
+  try {
+    // Destructure the fields from values object and ensure they match your schema
+    const { name, PhoneNumber } = values;
+
+    // Update the user document using the field names from your schema
+    const updatedUser = await User.findOneAndUpdate(
+      { email: req.user.email }, // Verify req.user.email is correctly provided
+      {
+        name: name, // Assuming you want to update the name field
+        PhoneNumber: PhoneNumber // This now matches the case in your schema
+      },
+      { new: true }
+    ).exec();
+
+    res.json({ ok: true }); // Optionally send back updated user info
+  } catch (err) {
+    console.error(err);
+    res.status(400).json({ err: err.message });
+  }
+};
+
 
 exports.getFavorites = async (req, res) => {
   try {
@@ -214,7 +238,7 @@ exports.readUserDetails = async (req, res) => {
     startOfToday.setHours(0, 0, 0, 0);
 
     // Count the number of articles read today
-    const todaysRead = user.activityLog.filter(activity => 
+    const todaysRead = user.activityLog.filter(activity =>
       new Date(activity.date).getTime() >= startOfToday.getTime()
     ).length;
 
@@ -227,4 +251,31 @@ exports.readUserDetails = async (req, res) => {
     res.status(400).json({ err: err.message });
   }
 };
+
+exports.getUniqueCountries = async (req, res) => {
+  try {
+    const countries = await Guest.aggregate([
+      {
+        $group: {
+          _id: "$country", // Group by the country field
+        }
+      },
+      {
+        $sort: { _id: 1 } // Optionally sort the countries alphabetically
+      },
+      {
+        $project: {
+          _id: 0, // Exclude the _id field from the results
+          country: "$_id" // Include the country field with the name 'country'
+        }
+      }
+    ]);
+
+    res.json(countries);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
 
