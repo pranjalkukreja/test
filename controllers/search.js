@@ -7,8 +7,12 @@ exports.recordSearchTerm = async (req, res) => {
   try {
     const { term, user, page } = req.body;
     const { country } = req.query;
-    const apiKey = '619448c0e5c64ef597138852ad331cc6';
+    const apiKey = '04fc7417a23e435e9a53cccf862be2ca';
+    console.log(req.body);
 
+    if (term == '') {
+      return
+    }
     // Save the search term with the user ID only if it's the first page
     if (page === 1 || !page) {
       const search = new Search({
@@ -35,7 +39,7 @@ exports.recordSearchTerm = async (req, res) => {
         // searchIn: country,
         sortBy: 'publishedAt',
         pageSize: 4,
-        page: page || 1,
+        page: page,
         apiKey: apiKey,
         language: 'en'
       }
@@ -50,7 +54,6 @@ exports.recordSearchTerm = async (req, res) => {
     });
     // Sort articles from newest to oldest (optional, if needed)
     // articles.sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
-
     // Respond with the fetched news articles
     res.json({
       searchTerm: term,

@@ -81,9 +81,9 @@ exports.read = async (req, res) => {
             params: {
                 category: tag.name,
                 country: code,
-                pageSize: 2,
+                pageSize: 4,
                 page: page,
-                apiKey: '4141c9c37c2d4c9492c3154692f316c1' // Replace with your actual API key
+                apiKey: '04fc7417a23e435e9a53cccf862be2ca' // Replace with your actual API key
             }
         });
 
@@ -93,10 +93,11 @@ exports.read = async (req, res) => {
             response = await axios.get('https://newsapi.org/v2/everything', {
                 params: {
                     q: `${tag.name} AND ${country}`,
-                    sortBy: 'relevancy',
-                    pageSize: 2,
+                    sortBy: 'publishedAt',
+                    pageSize: 4,
                     page: page,
-                    apiKey: '4141c9c37c2d4c9492c3154692f316c1' // Replace with your actual API key
+                    language: 'en',
+                    apiKey: '04fc7417a23e435e9a53cccf862be2ca' // Replace with your actual API key
                 }
             });
 
@@ -140,7 +141,7 @@ exports.readByInterests = async (req, res) => {
     console.log('balle', req.query);
 
     try {
-        const apiKey = '619448c0e5c64ef597138852ad331cc6';
+        const apiKey = '04fc7417a23e435e9a53cccf862be2ca';
         let articles;
 
         const tags = await Tag.find({}).sort({ createdAt: -1 }).exec();
@@ -154,25 +155,34 @@ exports.readByInterests = async (req, res) => {
                 return res.status(404).json({ message: "No categories found" });
             }
         } else {
-            if (Math.random() > 0.5 && tags.length > 0) {
-                // Pick a random tag from the tags array
+            if (Math.random() > 0.75 && tags.length > 0) {
                 const randomTag = tags[Math.floor(Math.random() * tags.length)];
                 interest = randomTag.name;
             }
         }
+        const randomPage = Math.floor(Math.random() * 30) + 1;
 
-        console.log('Selected Interest:', interest);
-
-        // Fetch top headlines for the selected interest
-        let response = await axios.get('https://newsapi.org/v2/top-headlines', {
-            params: {
-                category: `${interest}`,
+        let params;
+        // If page is even, request top headlines without specifying category
+        if (page % 2 === 0) {
+            params = {
+                country: code,
+                pageSize: 2,
+                page: randomPage,
+                apiKey: apiKey
+            };
+        } else { // If page is odd, request top headlines for the selected interest
+            params = {
+                category: interest,
                 country: code,
                 pageSize: 2,
                 page: page,
                 apiKey: apiKey
-            }
-        });
+            };
+        }
+
+        // Fetch top headlines based on the parameters set above
+        let response = await axios.get('https://newsapi.org/v2/top-headlines', { params });
 
         articles = response.data.articles;
         console.log('eturgrul', response.data);
@@ -183,8 +193,7 @@ exports.readByInterests = async (req, res) => {
             response = await axios.get('https://newsapi.org/v2/everything', {
                 params: {
                     q: `${interest} AND ${country}`,
-                    // country: code,
-                    sortBy: 'publishedAt',
+                    sortBy: 'popularity',
                     pageSize: 2,
                     page: page,
                     language: 'en',
@@ -196,7 +205,7 @@ exports.readByInterests = async (req, res) => {
         }
 
         res.json({
-            category: interest,
+            category: page % 2 === 0 ? 'Top Headlines' : interest,
             news: articles
         });
 
