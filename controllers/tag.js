@@ -297,36 +297,102 @@ exports.updateTagStats = async (req, res) => {
 
 
 exports.getTrendingTags = async (req, res) => {
+    const { user } = req.query;
+    console.log(user);
     try {
+        let tagsToFetch = 8; // Total number of tags we aim to fetch
+
+        // Initialize arrays to hold IDs of selected tags
+        let topInterestTagIds = [];
+        let finalTagDocuments = [];
+
+        // Fetch the Guest document, including interest scores
+        const guest = await Guest.findById(user).lean(); // `.lean()` for performance, since we just read data
+
+        if (guest && guest.interestScore && guest.interestScore.length > 0) {
+            // Sort interest scores by 'score' in descending order and get the top up to 3
+            topInterestTagIds = guest.interestScore.sort((a, b) => b.score - a.score).slice(0, 3).map(score => score.tag);
+            tagsToFetch -= topInterestTagIds.length; // Reduce the number of tags to fetch accordingly
+
+            // Fetch the full tag documents for these top interest tags
+            finalTagDocuments = await Tag.find({ _id: { $in: topInterestTagIds } });
+        }
+
+        console.log(finalTagDocuments);
+
+
+
+        // Now, let's fetch trending tags, excluding any top interest tags already selected
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
-        // Fetch tags that are trending today
-        let trendingTags = await Tag.aggregate([
-            { $match: { "trendScore.date": { $eq: today } } },
-            { $limit: 8 } // Assuming you define "trending" as having a trendScore for today
-        ]);
-
-        if (trendingTags.length < 8) {
-            // Calculate how many more tags are needed to make up 8
-            const tagsNeeded = 8 - trendingTags.length;
-
-            // Fetch random tags to make up the difference
-            // Note: $sample may return the same tags as in trendingTags. Additional logic needed to exclude them if necessary
-            const randomTags = await Tag.aggregate([
-                { $match: { _id: { $nin: trendingTags.map(tag => tag._id) } } }, // Exclude already selected trending tags
-                { $sample: { size: tagsNeeded } }
+        let trendingTags = [];
+        if (tagsToFetch > 0) {
+            trendingTags = await Tag.aggregate([
+                { $match: { "trendScore.date": { $eq: today }, _id: { $nin: topInterestTagIds } } },
+                { $limit: tagsToFetch }
             ]);
 
-            // Combine trending tags with random tags
-            trendingTags = trendingTags.concat(randomTags);
+            // Add the fetched trending tags to the final list
+            finalTagDocuments.push(...trendingTags);
         }
+        // If we still don't have enough tags, fetch additional random tags
+        if (finalTagDocuments.length < 8) {
+            const tagsStillNeeded = 8 - finalTagDocuments.length;
+            const allSelectedTagIds = [...topInterestTagIds, ...trendingTags.map(tag => tag._id)]; // Combine IDs from both sources
 
-        console.log(trendingTags);
+            const randomTags = await Tag.aggregate([
+                { $match: { _id: { $nin: allSelectedTagIds } } },
+                { $sample: { size: tagsStillNeeded } }
+            ]);
 
-        res.json(trendingTags);
-    } catch (error) {
+            // Add these random tags to the final list
+            finalTagDocuments.push(...randomTags);
+        }
+        res.json(finalTagDocuments);
+    }  catch (error) {
         console.error(error);
         res.status(500).json({ message: "Server error" });
     }
 };
+
+
+exports.updateInterestScores = async (req, res) => {
+    try {
+        const { interestScores: interestScoresString, guestId } = req.body;
+        const interestScores = JSON.parse(interestScoresString); // Assuming interestScores is a JSON string
+        
+        const guestObjectId = mongoose.Types.ObjectId(guestId);
+        
+        // Find or create the guest document
+        let guest = await Guest.findById(guestObjectId) || new Guest({ _id: guestObjectId });
+
+        // Update each interest score
+        for (const [tagName, score] of Object.entries(interestScores)) {
+            // Find the Tag document by name to get its ObjectId
+            const tag = await Tag.findOne({ name: tagName });
+            if (tag) {
+                const tagObjectId = tag._id;
+                const interestIndex = guest.interestScore.findIndex(item => item.tag.equals(tagObjectId));
+
+                if (interestIndex > -1) {
+                    // Interest exists, increment its score
+                    guest.interestScore[interestIndex].score += score;
+                } else {
+                    // New interest, add it to the array
+                    guest.interestScore.push({ tag: tagObjectId, score });
+                }
+            } else {
+                console.log(`Tag not found for name: ${tagName}`);
+                // Optionally handle the case where the tag doesn't exist in the Tag collection
+            }
+        }
+
+        await guest.save(); // Save the updated guest document
+        res.json({ message: "Interest scores updated successfully." });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Server error", error: error.message });
+    }
+};
+

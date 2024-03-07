@@ -16,7 +16,8 @@ const {
     readTag,
     readLocalNews,
     updateTagStats,
-    getTrendingTags
+    getTrendingTags,
+    updateInterestScores
   } = require("../controllers/tag");
 
   router.post('/tag-create', authCheck, adminCheck, create)
@@ -30,5 +31,6 @@ const {
   router.get("/read-local", readLocalNews);
   router.post("/tags-trending", updateTagStats);
   router.get("/read-trendy-tags", getTrendingTags);
+  router.post("/update-guest-interests", updateInterestScores);
 
   module.exports = router;

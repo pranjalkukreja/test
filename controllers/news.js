@@ -404,9 +404,6 @@ exports.weatherForecastSearchSimple = async (req, res) => {
 
         const response = await axios.get(url);
         const simpleForecastData = translateSimpleForecastData(response.data);
-
-        console.log('Simple Forecast Data:', simpleForecastData);
-
         res.json(simpleForecastData);
     } catch (error) {
         res.status(500).send('Error fetching forecast data');
