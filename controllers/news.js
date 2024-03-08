@@ -167,7 +167,7 @@ exports.getTopNewsByCategory = async (req, res) => {
         const categoriesToFetch = page ? categories.slice(0, page) : categories;
 
         // NewsAPI key
-        const apiKey = 'e1c3df52a3d9439fa286ef24c11de7b6'; // Replace with your NewsAPI key
+        const apiKey = '4141c9c37c2d4c9492c3154692f316c1'; // Replace with your NewsAPI key
 
         // Fetch top news for each category within the page limit
         const newsData = await Promise.all(categoriesToFetch.map(async (category) => {
@@ -191,11 +191,11 @@ exports.getTopNewsByCategory = async (req, res) => {
         const filteredNewsData = newsData.filter(item => item.news !== null);
 
         // Filter out articles with '[Removed]'
-        // filteredNewsData = filteredNewsData.filter(article => {
-        //     return article.title !== '[Removed]' &&
-        //         article.description !== '[Removed]' &&
-        //         article.content !== '[Removed]';
-        // });
+        filteredNewsData = filteredNewsData.filter(article => {
+            return article.title !== '[Removed]' &&
+                article.description !== '[Removed]' &&
+                article.content !== '[Removed]';
+        });
 
 
         res.json(filteredNewsData);

@@ -2,6 +2,9 @@ const User = require("../models/user");
 const Article = require('../models/article');
 const Guest = require('../models/guest');
 const mongoose = require("mongoose");
+const { Expo } = require('expo-server-sdk');
+
+let expo = new Expo();
 
 exports.createOrUpdateUser = async (req, res) => {
   const { picture, email, phone_number } = req.user;
@@ -278,4 +281,66 @@ exports.getUniqueCountries = async (req, res) => {
   }
 };
 
+exports.listAllUsers = async (req, res) => {
+  let alltransaction = await User.find({})
+    .sort("-createdAt")
+    .exec();
 
+  res.json(alltransaction);
+};
+
+exports.listAllGuests = async (req, res) => {
+  let alltransaction = await Guest.find({})
+    .sort("-createdAt")
+    .exec();
+
+  res.json(alltransaction);
+};
+
+exports.sendExpoNotifications = async (req, res) => {
+
+  const { country, tags, title, description } = req.body.value;
+  let query = {};
+  if (country) query['country'] = country;
+  if (tags && tags.length) query['interestScore.tag'] = { $in: tags };
+
+  try {
+    const guests = await Guest.find(query).exec();
+
+    // Create the messages that you want to send to clients
+    let messages = [];
+    for (let guest of guests) {
+      if (!Expo.isExpoPushToken(guest.expoKey)) {
+        console.error(`Push token ${guest.expoKey} is not a valid Expo push token`);
+        continue;
+      }
+
+      messages.push({
+        to: guest.expoKey,
+        sound: 'default',
+        title: title,
+        body: description,
+        data: { screen: 'NewsPage', params: { newsId: '123' } },
+      });
+    }
+
+    // The Expo push notification service accepts batches of notifications so
+    // we'll split our array into chunks of PUSH_CHUNK_SIZE messages.
+    let chunks = expo.chunkPushNotifications(messages);
+    let tickets = [];
+    for (let chunk of chunks) {
+      try {
+        let ticketChunk = await expo.sendPushNotificationsAsync(chunk);
+        console.log(ticketChunk);
+        tickets.push(...ticketChunk);
+      } catch (error) {
+        console.error(error);
+      }
+    }
+
+    res.status(200).json({ message: 'Notifications sent successfully', tickets });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+
+}
