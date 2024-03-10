@@ -191,11 +191,11 @@ exports.getTopNewsByCategory = async (req, res) => {
         const filteredNewsData = newsData.filter(item => item.news !== null);
 
         // Filter out articles with '[Removed]'
-        filteredNewsData = filteredNewsData.filter(article => {
-            return article.title !== '[Removed]' &&
-                article.description !== '[Removed]' &&
-                article.content !== '[Removed]';
-        });
+        // filteredNewsData = filteredNewsData.filter(article => {
+        //     return article.title !== '[Removed]' &&
+        //         article.description !== '[Removed]' &&
+        //         article.content !== '[Removed]';
+        // });
 
 
         res.json(filteredNewsData);
