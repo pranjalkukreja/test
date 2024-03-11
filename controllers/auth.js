@@ -3,6 +3,7 @@ const Article = require('../models/article');
 const Guest = require('../models/guest');
 const mongoose = require("mongoose");
 const { Expo } = require('expo-server-sdk');
+const axios = require('axios');
 
 let expo = new Expo();
 
@@ -343,4 +344,99 @@ exports.sendExpoNotifications = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 
+}
+
+exports.fetchNewsAndPrepareNotifications = async (req, res) => {
+  try {
+    const uniqueCountryCodes = await Guest.distinct("countryCode");
+    const apiKey = 'e1c3df52a3d9439fa286ef24c11de7b6';
+    const newsByCountry = {};
+    const notificationCounts = {}; // To keep track of notifications sent per country
+
+    for (let countryCode of uniqueCountryCodes) {
+      if (!countryCode) continue;
+
+      const params = {
+        country: countryCode,
+        pageSize: 1,
+        apiKey: apiKey,
+      };
+
+      let response = await axios.get('https://newsapi.org/v2/top-headlines', { params });
+      let articles = response.data.articles;
+      const countryName = countryCodeToName(countryCode);
+
+      newsByCountry[countryCode] = {
+        articles: articles.slice(0, 3),
+        countryName: countryName,
+      };
+
+      // Initialize notification count for each country
+      notificationCounts[countryCode] = 0;
+    }
+
+    let messages = [];
+    const guests = await Guest.find({}).exec();
+
+    for (let guest of guests) {
+      if (!guest.countryCode || !guest.expoKey || !newsByCountry[guest.countryCode]) continue;
+
+      const { articles, countryName } = newsByCountry[guest.countryCode];
+
+      // Prepare the notification payload
+      if (!Expo.isExpoPushToken(guest.expoKey)) {
+        console.error(`Push token ${guest.expoKey} is not a valid Expo push token`);
+        continue;
+      }
+
+      // Inside your notification sending loop or function
+      messages.push({
+        to: guest.expoKey,
+        sound: 'default',
+        title: `Top News in ${countryName}`,
+        body: articles.length > 0 ? `Catch up with the latest news: ${articles[0].title}` : "No news is good news!",
+        data: {
+          screen: 'NewsPage',
+          customMessage: articles.length > 0 ? articles[0] : null, // Assuming the first article is what you want to show
+          country: guest.country,
+          countryCode: guest.countryCode,
+        },
+      });
+
+      // Increment the notification count for this country
+      notificationCounts[guest.countryCode]++;
+    }
+
+    // Send the notifications in batches
+    let chunks = expo.chunkPushNotifications(messages);
+    for (let chunk of chunks) {
+      try {
+        await expo.sendPushNotificationsAsync(chunk);
+      } catch (error) {
+        console.error("Error sending notifications:", error);
+      }
+    }
+
+    // Prepare the summary of notifications sent
+    let summary = {};
+    for (let countryCode in notificationCounts) {
+      const countryName = countryCodeToName(countryCode);
+      summary[countryName] = notificationCounts[countryCode];
+    }
+
+    res.json({ ok: true, notificationsSentSummary: summary });
+
+  } catch (error) {
+    console.error("Error fetching news or preparing notifications:", error);
+    res.status(500).json({ error: 'An error occurred' });
+  }
+};
+
+function countryCodeToName(code) {
+  const countryCodeMap = {
+    US: 'United States',
+    GB: 'Great Britain',
+    // Add more mappings as needed
+  };
+  return countryCodeMap[code] || code;
 }
