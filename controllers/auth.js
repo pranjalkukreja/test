@@ -357,9 +357,12 @@ exports.fetchNewsAndPrepareNotifications = async (req, res) => {
     for (let countryCode of uniqueCountryCodes) {
       if (!countryCode) continue;
 
+      const randomPage = Math.floor(Math.random() * 20) + 1;
+
       const params = {
         country: countryCode,
         pageSize: 1,
+        page: randomPage,
         apiKey: apiKey,
       };
 
@@ -442,45 +445,15 @@ function countryCodeToName(code) {
   return countryCodeMap[code] || code;
 }
 
-function generateRandomTimes(numberOfTimes) {
-  const times = [];
-  for (let i = 0; i < numberOfTimes; i++) {
-      // Generate a random hour between 9 AM (9) and 9 PM (21)
-      const hour = Math.floor(Math.random() * (21 - 9 + 1)) + 9;
-      // Generate a random minute
-      const minute = Math.floor(Math.random() * 60);
-      times.push(`${minute} ${hour} * * *`);
+cron.schedule('0 * * * *', async () => {
+  console.log('Running fetchNewsAndPrepareNotifications every 2 hours');
+  try {
+      // Assuming fetchNewsAndPrepareNotifications is an async function and doesn't need req, res
+      await exports.fetchNewsAndPrepareNotifications(); // Adjust as needed for your actual function call
+  } catch (error) {
+      console.error("Error during scheduled task:", error);
   }
-  return times;
-}
-
-
-let scheduledTasks = [];
-
-function scheduleRandomDailyTasks() {
-    // Clear existing schedules
-    scheduledTasks.forEach(task => task.stop());
-    scheduledTasks = [];
-
-    // Generate and schedule new tasks
-    const randomTimes = generateRandomTimes(9); // You can adjust the number of times as needed
-    randomTimes.forEach(time => {
-        const task = cron.schedule(time, async () => {
-            try {
-                console.log(`Running fetchNewsAndPrepareNotifications at ${time}.`);
-                await exports.fetchNewsAndPrepareNotifications(); // Make sure this is adapted to your function
-            } catch (error) {
-                console.error("Scheduled task failed:", error);
-            }
-        }, {
-            scheduled: true
-        });
-        scheduledTasks.push(task);
-    });
-}
-
-// Schedule the reset function to run at midnight
-cron.schedule('0 0 * * *', scheduleRandomDailyTasks);
-
-// Initialize the random daily tasks on startup
-scheduleRandomDailyTasks();
+}, {
+  scheduled: true,
+  timezone: "Asia/Kolkata" 
+});
