@@ -463,7 +463,7 @@ function scheduleRandomDailyTasks() {
     scheduledTasks = [];
 
     // Generate and schedule new tasks
-    const randomTimes = generateRandomTimes(6); // You can adjust the number of times as needed
+    const randomTimes = generateRandomTimes(9); // You can adjust the number of times as needed
     randomTimes.forEach(time => {
         const task = cron.schedule(time, async () => {
             try {
