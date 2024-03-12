@@ -4,6 +4,7 @@ const Guest = require('../models/guest');
 const mongoose = require("mongoose");
 const { Expo } = require('expo-server-sdk');
 const axios = require('axios');
+const cron = require('node-cron');
 
 let expo = new Expo();
 
@@ -394,10 +395,10 @@ exports.fetchNewsAndPrepareNotifications = async (req, res) => {
         to: guest.expoKey,
         sound: 'default',
         title: `Top News in ${countryName}`,
-        body: articles.length > 0 ? `Catch up with the latest news: ${articles[0].title}` : "No news is good news!",
+        body: articles.length > 0 ? `${articles[0].title}` : "No news is good news!",
         data: {
           screen: 'NewsPage',
-          customMessage: articles.length > 0 ? articles[0] : null, // Assuming the first article is what you want to show
+          customMessage: articles.length > 0 ? articles[0] : null,
           country: guest.country,
           countryCode: guest.countryCode,
         },
@@ -440,3 +441,46 @@ function countryCodeToName(code) {
   };
   return countryCodeMap[code] || code;
 }
+
+function generateRandomTimes(numberOfTimes) {
+  const times = [];
+  for (let i = 0; i < numberOfTimes; i++) {
+      // Generate a random hour between 9 AM (9) and 9 PM (21)
+      const hour = Math.floor(Math.random() * (21 - 9 + 1)) + 9;
+      // Generate a random minute
+      const minute = Math.floor(Math.random() * 60);
+      times.push(`${minute} ${hour} * * *`);
+  }
+  return times;
+}
+
+
+let scheduledTasks = [];
+
+function scheduleRandomDailyTasks() {
+    // Clear existing schedules
+    scheduledTasks.forEach(task => task.stop());
+    scheduledTasks = [];
+
+    // Generate and schedule new tasks
+    const randomTimes = generateRandomTimes(6); // You can adjust the number of times as needed
+    randomTimes.forEach(time => {
+        const task = cron.schedule(time, async () => {
+            try {
+                console.log(`Running fetchNewsAndPrepareNotifications at ${time}.`);
+                await exports.fetchNewsAndPrepareNotifications(); // Make sure this is adapted to your function
+            } catch (error) {
+                console.error("Scheduled task failed:", error);
+            }
+        }, {
+            scheduled: true
+        });
+        scheduledTasks.push(task);
+    });
+}
+
+// Schedule the reset function to run at midnight
+cron.schedule('0 0 * * *', scheduleRandomDailyTasks);
+
+// Initialize the random daily tasks on startup
+scheduleRandomDailyTasks();

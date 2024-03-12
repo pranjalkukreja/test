@@ -19,7 +19,6 @@ const {
     getTrendingTags,
     updateInterestScores
   } = require("../controllers/tag");
-const { fetchNewsAndPrepareNotifications } = require("../controllers/auth");
 
   router.post('/tag-create', authCheck, adminCheck, create)
   router.get("/tags", list);
@@ -33,6 +32,5 @@ const { fetchNewsAndPrepareNotifications } = require("../controllers/auth");
   router.post("/tags-trending", updateTagStats);
   router.get("/read-trendy-tags", getTrendingTags);
   router.post("/update-guest-interests", updateInterestScores);
-  router.post("/send-not", fetchNewsAndPrepareNotifications);
 
   module.exports = router;
