@@ -83,7 +83,7 @@ exports.read = async (req, res) => {
                 country: code,
                 pageSize: 4,
                 page: page,
-                apiKey: '0c9cae5d81a34a96b2450fcb68078f14' // Replace with your actual API key
+                apiKey: '0d63ebcbbf464b8b8f4f5d44c2d80ad7' // Replace with your actual API key
             }
         });
 
@@ -92,12 +92,13 @@ exports.read = async (req, res) => {
         if (!news || news.length === 0) {
             response = await axios.get('https://newsapi.org/v2/everything', {
                 params: {
-                    q: `${tag.name} AND ${country}`,
-                    sortBy: 'publishedAt',
+                    q: `+${tag.name} ${country}`,
+                    sortBy: 'relevancy',
                     pageSize: 4,
                     page: page,
+                    searchIn: 'title,description', // Search in title and description
                     language: 'en',
-                    apiKey: '0c9cae5d81a34a96b2450fcb68078f14' // Replace with your actual API key
+                    apiKey: '0d63ebcbbf464b8b8f4f5d44c2d80ad7' // Replace with your actual API key
                 }
             });
 
@@ -141,7 +142,7 @@ exports.readByInterests = async (req, res) => {
     console.log('balle', req.query);
 
     try {
-        const apiKey = '0c9cae5d81a34a96b2450fcb68078f14';
+        const apiKey = '0d63ebcbbf464b8b8f4f5d44c2d80ad7';
         let articles;
 
         const tags = await Tag.find({}).sort({ createdAt: -1 }).exec();
@@ -177,6 +178,7 @@ exports.readByInterests = async (req, res) => {
                 country: code,
                 pageSize: 3,
                 page: page,
+                page: randomPage,
                 apiKey: apiKey
             };
         }
@@ -192,10 +194,11 @@ exports.readByInterests = async (req, res) => {
             console.log('everything news');
             response = await axios.get('https://newsapi.org/v2/everything', {
                 params: {
-                    q: `${interest} AND ${country}`,
-                    sortBy: 'popularity',
+                    q: `+${interest} ${country}`,
+                    sortBy: 'publishedAt',
                     pageSize: 2,
                     page: page,
+                    searchIn: 'title,description', // Search in title and description
                     language: 'en',
                     apiKey: apiKey
                 }
@@ -222,14 +225,15 @@ exports.readLocalNews = async (req, res) => {
     console.log('balle', req.query);
 
     try {
-        const apiKey = '619448c0e5c64ef597138852ad331cc6';
+        const apiKey = '4925dfcf7ec84f5a97e55af95812cf60';
 
         response = await axios.get('https://newsapi.org/v2/everything', {
             params: {
-                q: `${city} AND ${country}`,
+                q: `+${city} ${country}`,
                 sortBy: 'publishedAt',
                 pageSize: page,
                 page: number,
+                searchIn: 'title,description', // Search in title and description
                 language: 'en',
                 apiKey: apiKey
             }
