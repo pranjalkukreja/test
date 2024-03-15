@@ -97,7 +97,7 @@ exports.read = async (req, res) => {
                     pageSize: 4,
                     page: page,
                     language: 'en',
-                    apiKey: 'e1c3df52a3d9439fa286ef24c11de7b6' // Replace with your actual API key
+                    apiKey: '0c9cae5d81a34a96b2450fcb68078f14' // Replace with your actual API key
                 }
             });
 
@@ -167,7 +167,7 @@ exports.readByInterests = async (req, res) => {
         if (page % 2 === 0) {
             params = {
                 country: code,
-                pageSize: 2,
+                pageSize: 3,
                 page: randomPage,
                 apiKey: apiKey
             };
@@ -175,7 +175,7 @@ exports.readByInterests = async (req, res) => {
             params = {
                 category: interest,
                 country: code,
-                pageSize: 2,
+                pageSize: 3,
                 page: page,
                 apiKey: apiKey
             };
