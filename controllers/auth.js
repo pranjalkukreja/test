@@ -350,7 +350,7 @@ exports.sendExpoNotifications = async (req, res) => {
 exports.fetchNewsAndPrepareNotifications = async (req, res) => {
   try {
     const uniqueCountryCodes = await Guest.distinct("countryCode");
-    const apiKey = 'e1c3df52a3d9439fa286ef24c11de7b6';
+    const apiKey = '0c9cae5d81a34a96b2450fcb68078f14';
     const newsByCountry = {};
     const notificationCounts = {}; // To keep track of notifications sent per country
 
@@ -445,15 +445,15 @@ function countryCodeToName(code) {
   return countryCodeMap[code] || code;
 }
 
-cron.schedule('0 * * * *', async () => {
-  console.log('Running fetchNewsAndPrepareNotifications every 2 hours');
-  try {
-      // Assuming fetchNewsAndPrepareNotifications is an async function and doesn't need req, res
-      await exports.fetchNewsAndPrepareNotifications(); // Adjust as needed for your actual function call
-  } catch (error) {
-      console.error("Error during scheduled task:", error);
-  }
-}, {
-  scheduled: true,
-  timezone: "Asia/Kolkata" 
-});
+// cron.schedule('0 * * * *', async () => {
+//   console.log('Running fetchNewsAndPrepareNotifications every 2 hours');
+//   try {
+//       // Assuming fetchNewsAndPrepareNotifications is an async function and doesn't need req, res
+//       await exports.fetchNewsAndPrepareNotifications(); // Adjust as needed for your actual function call
+//   } catch (error) {
+//       console.error("Error during scheduled task:", error);
+//   }
+// }, {
+//   scheduled: true,
+//   timezone: "Asia/Kolkata" 
+// });
