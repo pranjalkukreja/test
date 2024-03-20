@@ -445,15 +445,15 @@ function countryCodeToName(code) {
   return countryCodeMap[code] || code;
 }
 
-cron.schedule('0 * * * *', async () => {
-  console.log('Running fetchNewsAndPrepareNotifications every 2 hours');
-  try {
-      // Assuming fetchNewsAndPrepareNotifications is an async function and doesn't need req, res
-      await exports.fetchNewsAndPrepareNotifications(); // Adjust as needed for your actual function call
-  } catch (error) {
-      console.error("Error during scheduled task:", error);
-  }
-}, {
-  scheduled: true,
-  timezone: "Asia/Kolkata" 
-});
+// cron.schedule('0 * * * *', async () => {
+//   console.log('Running fetchNewsAndPrepareNotifications every 2 hours');
+//   try {
+//       // Assuming fetchNewsAndPrepareNotifications is an async function and doesn't need req, res
+//       await exports.fetchNewsAndPrepareNotifications(); // Adjust as needed for your actual function call
+//   } catch (error) {
+//       console.error("Error during scheduled task:", error);
+//   }
+// }, {
+//   scheduled: true,
+//   timezone: "Asia/Kolkata" 
+// });
