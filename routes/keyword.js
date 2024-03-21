@@ -6,7 +6,8 @@ const {
     list,
     read,
     update,
-    findKeywordsWithFAQs
+    findKeywordsWithFAQs,
+    analyzeKeywords
   } = require("../controllers/keyword");
 
   router.post("/create-keyword", create);
@@ -14,5 +15,6 @@ const {
   router.get("/keyword/:_id", read);
   router.put("/keyword/:_id", update);
   router.post('/find-keywords', findKeywordsWithFAQs);
+  router.post('/analyze-keywords', analyzeKeywords);
 
   module.exports = router;

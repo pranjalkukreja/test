@@ -83,7 +83,7 @@ exports.read = async (req, res) => {
                 country: code,
                 pageSize: 4,
                 page: page,
-                apiKey: '0d63ebcbbf464b8b8f4f5d44c2d80ad7' // Replace with your actual API key
+                apiKey: '5eb6c1d605ff4d1aaef0a0753bc437c0' // Replace with your actual API key
             }
         });
 
@@ -98,7 +98,7 @@ exports.read = async (req, res) => {
                     page: page,
                     searchIn: 'title,description', // Search in title and description
                     language: 'en',
-                    apiKey: '0d63ebcbbf464b8b8f4f5d44c2d80ad7' // Replace with your actual API key
+                    apiKey: '5eb6c1d605ff4d1aaef0a0753bc437c0' // Replace with your actual API key
                 }
             });
 
