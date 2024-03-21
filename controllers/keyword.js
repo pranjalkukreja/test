@@ -4,10 +4,10 @@ const mongoose = require('mongoose');
 const Keyword = require('../models/keyword');
 const { Configuration, OpenAIApi } = require("openai");
 
-const configuration = new Configuration({
-    apiKey: process.env.OPENAI_API_KEY,
-  });
-  const openai = new OpenAIApi(configuration);
+// const configuration = new Configuration({
+//     apiKey: process.env.OPENAI_API_KEY,
+//   });
+//   const openai = new OpenAIApi(configuration);
 
 exports.create = async (req, res) => {
     try {
