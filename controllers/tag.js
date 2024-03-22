@@ -93,7 +93,7 @@ exports.read = async (req, res) => {
             response = await axios.get('https://newsapi.org/v2/everything', {
                 params: {
                     q: `+${tag.name} ${country}`,
-                    sortBy: 'relevancy',
+                    sortBy: 'publishedAt',
                     pageSize: 4,
                     page: page,
                     searchIn: 'title,description', // Search in title and description

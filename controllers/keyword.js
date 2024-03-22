@@ -4,10 +4,10 @@ const mongoose = require('mongoose');
 const Keyword = require('../models/keyword');
 const { Configuration, OpenAIApi } = require("openai");
 
-// const configuration = new Configuration({
-//     apiKey: process.env.OPENAI_API_KEY,
-//   });
-//   const openai = new OpenAIApi(configuration);
+const configuration = new Configuration({
+    apiKey: process.env.OPENAI_API_KEY,
+  });
+  const openai = new OpenAIApi(configuration);
 
 exports.create = async (req, res) => {
     try {
@@ -110,7 +110,6 @@ exports.analyzeKeywords = async (req, res) => {
       const words = title.split(/\s+/);
       let potentialKeywords = new Set();
   
-      // Generate combinations of adjacent words
       for (let start = 0; start < words.length; start++) {
         let combo = words[start];
         potentialKeywords.add(combo.toLowerCase()); // Add the single word first
