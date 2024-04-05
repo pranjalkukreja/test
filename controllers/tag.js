@@ -2,6 +2,7 @@ const Tag = require("../models/tag");
 const Guest = require('../models/guest')
 const axios = require('axios');
 const mongoose = require("mongoose");
+const Article = require('../models/article');
 
 
 exports.create = async (req, res) => {
@@ -110,6 +111,39 @@ exports.read = async (req, res) => {
             news: news
         });
 
+        news.forEach(articleData => {
+            // Check if an article with the same title already exists
+            Article.findOne({ title: articleData.title }, (err, existingArticle) => {
+                if (err) {
+                    console.error('Error checking for existing article:', err);
+                    return;
+                }
+        
+                // If the article doesn't exist, save a new one
+                if (!existingArticle) {
+                    const article = new Article({
+                        source: articleData.source,
+                        author: articleData.author,
+                        title: articleData.title,
+                        description: articleData.description,
+                        url: articleData.url,
+                        urlToImage: articleData.urlToImage,
+                        publishedAt: articleData.publishedAt,
+                        content: articleData.content
+                    });
+        
+                    article.save().then(savedArticle => {
+                        console.log('New article saved:', savedArticle.title);
+                    }).catch(saveError => {
+                        console.error('Error saving new article:', saveError);
+                    });
+                } else {
+                    console.log('Article already exists, not saving:', existingArticle.title);
+                }
+            });
+        });
+        
+
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: "Server error" });
@@ -210,6 +244,29 @@ exports.readByInterests = async (req, res) => {
         res.json({
             category: page % 2 === 0 ? 'Top Headlines' : interest,
             news: articles
+        });
+
+        articles.forEach(articleData => {
+            Article.findOne({ title: articleData.title }).then(existingArticle => {
+                if (!existingArticle) {
+                    const article = new Article({
+                        source: articleData.source,
+                        author: articleData.author,
+                        title: articleData.title,
+                        description: articleData.description,
+                        url: articleData.url,
+                        urlToImage: articleData.urlToImage,
+                        publishedAt: articleData.publishedAt,
+                        content: articleData.content
+                    });
+
+                    article.save().catch(saveError => {
+                        console.error('Error saving new article:', saveError);
+                    });
+                }
+            }).catch(findError => {
+                console.error('Error checking for existing article:', findError);
+            });
         });
 
     } catch (error) {

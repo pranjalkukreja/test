@@ -347,35 +347,65 @@ exports.sendExpoNotifications = async (req, res) => {
 
 }
 
+
 exports.fetchNewsAndPrepareNotifications = async (req, res) => {
   try {
     const uniqueCountryCodes = await Guest.distinct("countryCode");
     const apiKey = '0d63ebcbbf464b8b8f4f5d44c2d80ad7';
     const newsByCountry = {};
-    const notificationCounts = {}; // To keep track of notifications sent per country
+    const notificationCounts = {};
 
     for (let countryCode of uniqueCountryCodes) {
       if (!countryCode) continue;
 
-      const randomPage = Math.floor(Math.random() * 20) + 1;
+      let page = 1; // Start from the first page
+      let articles;
+      let countryName = countryCodeToName(countryCode);
 
-      const params = {
-        country: countryCode,
-        pageSize: 1,
-        page: randomPage,
-        apiKey: apiKey,
-      };
+      do {
+        const params = {
+          country: countryCode,
+          pageSize: 1,
+          page: page++,
+          apiKey: apiKey,
+        };
 
-      let response = await axios.get('https://newsapi.org/v2/top-headlines', { params });
-      let articles = response.data.articles;
-      const countryName = countryCodeToName(countryCode);
+        let response = await axios.get('https://newsapi.org/v2/top-headlines', { params });
+        articles = response.data.articles;
+
+        // Check if articles have already been sent
+        const articleTitles = articles.map(article => article.title);
+        const sentArticles = await Article.find({ 'title': { $in: articleTitles }, 'url': { $in: articles.map(article => article.url) } });
+
+        if (sentArticles.length === 0) break; // If no sent articles match, proceed with these articles
+      } while (articles.length > 0);
+
+      if (articles.length === 0) continue; // Skip if no new articles are found
+
+      // Save articles to DB (if not already saved)
+      await Promise.all(articles.map(article => {
+        const articleToSave = {
+          source: {
+            id: article.source.id,
+            name: article.source.name
+          },
+          author: article.author,
+          title: article.title,
+          description: article.description,
+          url: article.url,
+          urlToImage: article.urlToImage,
+          publishedAt: article.publishedAt,
+          content: article.content
+        };
+        return Article.findOneAndUpdate({ url: article.url }, articleToSave, { upsert: true, new: true });
+      }));
+      
 
       newsByCountry[countryCode] = {
-        articles: articles.slice(0, 3),
+        articles: articles,
         countryName: countryName,
       };
 
-      // Initialize notification count for each country
       notificationCounts[countryCode] = 0;
     }
 
@@ -387,13 +417,11 @@ exports.fetchNewsAndPrepareNotifications = async (req, res) => {
 
       const { articles, countryName } = newsByCountry[guest.countryCode];
 
-      // Prepare the notification payload
       if (!Expo.isExpoPushToken(guest.expoKey)) {
         console.error(`Push token ${guest.expoKey} is not a valid Expo push token`);
         continue;
       }
 
-      // Inside your notification sending loop or function
       messages.push({
         to: guest.expoKey,
         sound: 'default',
@@ -407,11 +435,9 @@ exports.fetchNewsAndPrepareNotifications = async (req, res) => {
         },
       });
 
-      // Increment the notification count for this country
       notificationCounts[guest.countryCode]++;
     }
 
-    // Send the notifications in batches
     let chunks = expo.chunkPushNotifications(messages);
     for (let chunk of chunks) {
       try {
@@ -421,7 +447,6 @@ exports.fetchNewsAndPrepareNotifications = async (req, res) => {
       }
     }
 
-    // Prepare the summary of notifications sent
     let summary = {};
     for (let countryCode in notificationCounts) {
       const countryName = countryCodeToName(countryCode);
@@ -435,6 +460,7 @@ exports.fetchNewsAndPrepareNotifications = async (req, res) => {
     res.status(500).json({ error: 'An error occurred' });
   }
 };
+
 
 function countryCodeToName(code) {
   const countryCodeMap = {
