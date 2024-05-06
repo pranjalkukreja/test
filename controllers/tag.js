@@ -106,22 +106,11 @@ exports.read = async (req, res) => {
             news = response.data.articles;
         }
 
-        res.json({
-            tag: tag,
-            news: news
-        });
-
-        news.forEach(articleData => {
-            // Check if an article with the same title already exists
-            Article.findOne({ title: articleData.title }, (err, existingArticle) => {
-                if (err) {
-                    console.error('Error checking for existing article:', err);
-                    return;
-                }
-        
-                // If the article doesn't exist, save a new one
-                if (!existingArticle) {
-                    const article = new Article({
+        const articlesWithId = await Promise.all(news.map(async (articleData) => {
+            let article = await Article.findOneAndUpdate(
+                { title: articleData.title },
+                {
+                    $setOnInsert: {
                         source: articleData.source,
                         author: articleData.author,
                         title: articleData.title,
@@ -130,18 +119,24 @@ exports.read = async (req, res) => {
                         urlToImage: articleData.urlToImage,
                         publishedAt: articleData.publishedAt,
                         content: articleData.content
-                    });
-        
-                    article.save().then(savedArticle => {
-                        console.log('New article saved:', savedArticle.title);
-                    }).catch(saveError => {
-                        console.error('Error saving new article:', saveError);
-                    });
-                } else {
-                    console.log('Article already exists, not saving:', existingArticle.title);
+                    }
+                },
+                {
+                    new: true,
+                    upsert: true  // This option creates the document if it doesn't exist
                 }
-            });
+            ).exec();
+
+            return article;  // This will be the document with _id
+        }));
+
+
+        res.json({
+            tag: tag,
+            news: articlesWithId
         });
+
+  
         
 
     } catch (error) {
@@ -176,7 +171,7 @@ exports.readByInterests = async (req, res) => {
     console.log('balle', req.query);
 
     try {
-        const apiKey = '0d63ebcbbf464b8b8f4f5d44c2d80ad7';
+        const apiKey = '5eb6c1d605ff4d1aaef0a0753bc437c0';
         let articles;
 
         const tags = await Tag.find({}).sort({ createdAt: -1 }).exec();
@@ -228,9 +223,9 @@ exports.readByInterests = async (req, res) => {
             console.log('everything news');
             response = await axios.get('https://newsapi.org/v2/everything', {
                 params: {
-                    q: `+${interest} ${country}`,
+                    q: `+${interest}`,
                     sortBy: 'publishedAt',
-                    pageSize: 2,
+                    pageSize: 3,
                     page: page,
                     searchIn: 'title,description', // Search in title and description
                     language: 'en',
@@ -241,15 +236,11 @@ exports.readByInterests = async (req, res) => {
             articles = response.data.articles;
         }
 
-        res.json({
-            category: page % 2 === 0 ? 'Top Headlines' : interest,
-            news: articles
-        });
-
-        articles.forEach(articleData => {
-            Article.findOne({ title: articleData.title }).then(existingArticle => {
-                if (!existingArticle) {
-                    const article = new Article({
+        const articlesWithId = await Promise.all(articles.map(async (articleData) => {
+            let article = await Article.findOneAndUpdate(
+                { title: articleData.title },
+                {
+                    $setOnInsert: {
                         source: articleData.source,
                         author: articleData.author,
                         title: articleData.title,
@@ -258,16 +249,23 @@ exports.readByInterests = async (req, res) => {
                         urlToImage: articleData.urlToImage,
                         publishedAt: articleData.publishedAt,
                         content: articleData.content
-                    });
-
-                    article.save().catch(saveError => {
-                        console.error('Error saving new article:', saveError);
-                    });
+                    }
+                },
+                {
+                    new: true,
+                    upsert: true  // This option creates the document if it doesn't exist
                 }
-            }).catch(findError => {
-                console.error('Error checking for existing article:', findError);
-            });
+            ).exec();
+
+            return article;  // This will be the document with _id
+        }));
+
+
+        res.json({
+            category: page % 2 === 0 ? 'Top Headlines' : interest,
+            news: articlesWithId
         });
+
 
     } catch (error) {
         console.error(error);
@@ -278,8 +276,6 @@ exports.readByInterests = async (req, res) => {
 
 exports.readLocalNews = async (req, res) => {
     const { city, country, page, number } = req.query;
-
-    console.log('balle', req.query);
 
     try {
         const apiKey = '4925dfcf7ec84f5a97e55af95812cf60';
@@ -314,7 +310,6 @@ exports.updateTagStats = async (req, res) => {
         const today = new Date();
         today.setHours(0, 0, 0, 0); // Normalize today's date to midnight for consistency
 
-        // Convert tagId to ObjectId if necessary
         const objectId = mongoose.Types.ObjectId(tagId);
 
         // First, update the tag's trendScore

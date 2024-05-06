@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { ObjectId } = mongoose.Schema;
 
 const articleSchema = new mongoose.Schema({
     source: {
@@ -20,7 +21,18 @@ const articleSchema = new mongoose.Schema({
         type: Date,
         default: Date.now
     },
-    content: String
+    content: String,
+    ratings: [
+        {
+            star: Number,
+            comment: String,
+            postedBy: { type: ObjectId, ref: "Guest" },
+            posted: {
+                type: Date,
+                default: Date.now
+            }
+        }
+    ]
 });
 
 const Article = mongoose.model('Article', articleSchema);
