@@ -84,7 +84,7 @@ exports.read = async (req, res) => {
                 country: code,
                 pageSize: 4,
                 page: page,
-                apiKey: '5eb6c1d605ff4d1aaef0a0753bc437c0' // Replace with your actual API key
+                apiKey: '93f4c59c9fd648fb8bd12c85c3c48350' // Replace with your actual API key
             }
         });
 
@@ -99,7 +99,7 @@ exports.read = async (req, res) => {
                     page: page,
                     searchIn: 'title,description', // Search in title and description
                     language: 'en',
-                    apiKey: '5eb6c1d605ff4d1aaef0a0753bc437c0' // Replace with your actual API key
+                    apiKey: '93f4c59c9fd648fb8bd12c85c3c48350' // Replace with your actual API key
                 }
             });
 
@@ -171,7 +171,7 @@ exports.readByInterests = async (req, res) => {
     console.log('balle', req.query);
 
     try {
-        const apiKey = '5eb6c1d605ff4d1aaef0a0753bc437c0';
+        const apiKey = '3383646ed59843808082334b26772c94';
         let articles;
 
         const tags = await Tag.find({}).sort({ createdAt: -1 }).exec();
