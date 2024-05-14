@@ -9,6 +9,12 @@ const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 let expo = new Expo();
+const { Configuration, OpenAIApi } = require("openai");
+
+const configuration = new Configuration({
+    apiKey: process.env.OPENAI_API_KEY,
+  });
+  const openai = new OpenAIApi(configuration);
 
 exports.createOrUpdateUser = async (req, res) => {
   const { picture, email, phone_number } = req.user;
@@ -409,6 +415,10 @@ exports.fetchNewsAndPrepareNotifications = async (req, res) => {
       };
 
       notificationCounts[countryCode] = 0;
+
+      if (countryCode.toUpperCase() === 'US' && articles.length > 0) {
+         exports.createRandomNewsImage(articles[0]);  // Assuming createRandomNewsImage is modified to accept an article object
+      }
     }
 
     let messages = [];
@@ -455,6 +465,8 @@ exports.fetchNewsAndPrepareNotifications = async (req, res) => {
       summary[countryName] = notificationCounts[countryCode];
     }
 
+    
+
     res.json({ ok: true, notificationsSentSummary: summary });
 
   } catch (error) {
@@ -487,78 +499,59 @@ cron.schedule('0 * * * *', async () => {
 });
 
 
-exports.createRandomNewsImage = async (req, res) => {
+exports.createRandomNewsImage = async (article) => {
   try {
-    const apiKey = '3383646ed59843808082334b26772c94';
-    const countryCode = 'us'; // Set the country code to US for testing
 
-    const params = {
-      country: countryCode,
-      pageSize: 1,
-      apiKey: apiKey,
+    const titleResponse = await openai.createChatCompletion({
+      model: "gpt-3.5-turbo",
+      messages: [
+        { role: "system", content: "You are a helpful assistant." },
+        { role: "user", content: `Create a concise title from this text: "${article.title}. ${article.description}. ${article.content}". Make sure that it is in 11-13 words as it will come on the pics that goes to instagram  Just give me the caption and nothing else. dnt mention here is the caption or anything else  just the content i want as it will directly go to customer` },
+      ],
+    });
+
+    const conciseTitle = titleResponse.data.choices[0].message.content.trim();
+    console.log(conciseTitle);
+    // Now use axios to post data to your own API to create an image
+    const imageResponse = await axios.post('https://optimamart.com/api/create-image-loop', {
+      title: conciseTitle,
+      urlToImage: article.urlToImage,
+      publishedAt: article.publishedAt
+    });
+
+    // Assuming the image creation endpoint returns the URL of the created image
+    const imageUrl = imageResponse.data.imageUrl;
+    const captionResponse = await openai.createChatCompletion({
+      model: "gpt-3.5-turbo",
+      messages: [
+        { role: "system", content: "You are a helpful assistant." },
+        { role: "user", content: `Create a detailed caption and 25-30 relevant hashtags from this text: "${article.title}. ${article.description}. ${article.content}". Just give me the best summarization of it and give me the content straight, dont give me anything else such as this is the information or anything. Also dont mention caption or hashtags in the post  this will directly go to insta so dont make it feel like AI generated` },
+      ],
+    });
+
+    const captionDetails = captionResponse.data.choices[0].message.content.trim();
+    console.log(captionDetails);
+
+    const instagramParams = {
+      image_url: imageUrl,
+      caption: captionDetails,
+      access_token: 'EAADLqeAjhXEBOZCgFiysRVtZBxY505GYrIBkCdEiOWZB5ZAU13YlmgvAf7Emb2LB3aWdCqmwPKCOzukclk5WxsVZAZCGUVZCZAHPkxNWNaa0E3o6pD4AmHLMXALNVPEiXywQSQNENgfwG50dXsQWXOLZCQ4PsYCRs7XmxjHDjEVZC66YhYBPsrlBkITg9JdLABTmWBdC82efk2',
     };
 
-    const response = await axios.get('https://newsapi.org/v2/top-headlines', { params });
-    const articles = response.data.articles;
+    const instagramResponse = await axios.post(`https://graph.facebook.com/v14.0/17841461851346646/media`, instagramParams);
+    const creationId = instagramResponse.data.id;
 
-    if (articles.length === 0) {
-      return res.status(404).json({ error: 'No articles found' });
-    }
+    // Publish the media creation to Instagram
+    const publishResponse = await axios.post(`https://graph.facebook.com/v14.0/17841461851346646/media_publish`, {
+      creation_id: creationId,
+      access_token: 'EAADLqeAjhXEBOZCgFiysRVtZBxY505GYrIBkCdEiOWZB5ZAU13YlmgvAf7Emb2LB3aWdCqmwPKCOzukclk5WxsVZAZCGUVZCZAHPkxNWNaa0E3o6pD4AmHLMXALNVPEiXywQSQNENgfwG50dXsQWXOLZCQ4PsYCRs7XmxjHDjEVZC66YhYBPsrlBkITg9JdLABTmWBdC82efk2'
+    });
 
-    const article = articles[0];
-    const imageUrl = await createNewsImage(article.title, article.urlToImage, article.publishedAt);
-
-    res.status(200).json({ message: 'Image created successfully', imageUrl: imageUrl });
+    return { message: 'Image posted successfully to Instagram', instagramPostId: publishResponse.data.id };
   } catch (error) {
     console.error("Error fetching random news article or creating image:", error);
     res.status(500).json({ error: 'An error occurred' });
   }
 };
 
-function createNewsImage(title, urlToImage, publishedAt) {
-  return new Promise((resolve, reject) => {
-    const templatePath = path.join(__dirname, '../scripts/test.png'); // Path to your template image
-    const uploadsDir = path.join(__dirname, '../public/uploads');
-    const baseUrl = 'http://localhost:8000/uploads'; // Adjust this URL as needed
 
-    if (!fs.existsSync(uploadsDir)) {
-      fs.mkdirSync(uploadsDir, { recursive: true });
-    }
-
-    const fileName = `news_${publishedAt}.png`;
-    const outputFilename = path.join(uploadsDir, fileName);
-    const publicFileUrl = `${baseUrl}/${fileName}`;
-
-    const scriptPath = path.join(__dirname, '../scripts/image.py');
-
-    const pythonProcess = spawn('python3', [
-      scriptPath,
-      templatePath,
-      urlToImage,
-      title,
-      outputFilename
-    ]);
-
-    let dataOutput = '';
-    let errorOutput = '';
-
-    pythonProcess.stdout.on('data', (data) => {
-      dataOutput += data.toString();
-    });
-
-    pythonProcess.stderr.on('data', (data) => {
-      errorOutput += data.toString();
-    });
-
-    pythonProcess.on('close', (code) => {
-      if (code === 0) {
-        console.log(`Generated image saved at ${outputFilename}`);
-        console.log(`Generated image link: ${publicFileUrl}`);
-        resolve(publicFileUrl);
-      } else {
-        console.error(`Python script failed with code ${code} and error: ${errorOutput}`);
-        reject(new Error(`Error processing image for news with title "${title}"`));
-      }
-    });
-  });
-}
