@@ -7,6 +7,7 @@ const { spawn } = require('child_process');
 const Video = require('../models/video');
 const { Configuration, OpenAIApi } = require("openai");
 const Article = require('../models/article');
+const sharp = require('sharp');
 
 const configuration = new Configuration({
   apiKey: process.env.OPENAI_API_KEY,
@@ -29,44 +30,59 @@ exports.uploadImage = async (req, res) => {
     if (!file) return res.status(400).send('No file uploaded');
 
     // Determine file type and set the appropriate extension
-    const fileType = file.mimetype.split('/')[1]; // 'jpeg', 'png', 'gif', 'pdf', etc.
-    const validImageTypes = ['jpeg', 'jpg', 'png', 'gif'];
-    const extension = validImageTypes.includes(fileType) ? fileType : 'pdf';
-    console.log(file);
-
-    const fileName = `${Date.now()}.${extension}`; // Use 'extension' instead of hardcoding 'jpg'
-    const uploadsDir = path.join(__dirname, '../public/uploads');
-    const filePath = path.join(uploadsDir, fileName);
-    console.log(fileName);
+      // Determine file type and set the appropriate extension
+      const fileType = file.mimetype.split('/')[1]; // 'jpeg', 'png', 'gif', 'pdf', etc.
+      const validImageTypes = ['jpeg', 'jpg', 'png'];
+      const isImage = validImageTypes.includes(fileType);
+  
+      const fileName = `${Date.now()}.${isImage ? 'webp' : fileType}`; // Use 'webp' for images, keep original for others
+      const uploadsDir = path.join(__dirname, '../public/uploads');
+      const filePath = path.join(uploadsDir, fileName);
 
     // Ensure the uploads directory exists
     if (!fs.existsSync(uploadsDir)) {
       fs.mkdirSync(uploadsDir, { recursive: true });
     }
 
-    // Move the file
-    fs.renameSync(file.path, filePath);
+    if (isImage) {
+      // Convert image to webp format
+      sharp(file.path)
+        .toFormat('webp')
+        .webp({ quality: 80 }) // Adjust the quality as needed
+        .toFile(filePath)
+        .then(() => handleFileUpload(filePath, fileName, res))
+        .catch(err => {
+          console.error(err);
+          res.status(500).send('Error processing image');
+        });
+    } else {
+      // Move the file as it is for non-image types like PDF
+      fs.renameSync(file.path, filePath);
+      handleFileUpload(filePath, fileName, res);
+    }
 
-    const publicFileUrl = `https://inlooop.com/uploads/${fileName}`;
-    // For production, you might switch the URL to something like:
-    // const publicFileUrl = `https://yourdomain.com/uploads/${fileName}`;
-
-    // Save the file information in MongoDB (if necessary)
-    const savedFile = await Image.create({
-      public_id: fileName,
-      url: publicFileUrl,
-    });
-
-    // Respond with the public URL of the uploaded file
-    res.json({
-      public_id: savedFile.public_id,
-      url: savedFile.url,
-    });
   } catch (err) {
     console.error(err);
     res.status(500).send('Server error');
   }
 };
+
+function handleFileUpload(filePath, fileName, res) {
+  const publicFileUrl = `https://inlooop.com/uploads/${fileName}`;
+  Image.create({
+    public_id: fileName,
+    url: publicFileUrl,
+  }).then(savedFile => {
+    res.json({
+      public_id: savedFile.public_id,
+      url: savedFile.url,
+    });
+  }).catch(err => {
+    console.error('Database save error:', err);
+    res.status(500).send('Error saving file info');
+  });
+}
+
 
 
 exports.remove = async (req, res) => {
