@@ -47,7 +47,7 @@ exports.uploadImage = async (req, res) => {
     // Move the file
     fs.renameSync(file.path, filePath);
 
-    const publicFileUrl = `http://localhost:8000/uploads/${fileName}`;
+    const publicFileUrl = `https://inlooop.com/uploads/${fileName}`;
     // For production, you might switch the URL to something like:
     // const publicFileUrl = `https://yourdomain.com/uploads/${fileName}`;
 
