@@ -5,7 +5,9 @@ const mongoose = require("mongoose");
 const { Expo } = require('expo-server-sdk');
 const axios = require('axios');
 const cron = require('node-cron');
-
+const { spawn } = require('child_process');
+const path = require('path');
+const fs = require('fs');
 let expo = new Expo();
 
 exports.createOrUpdateUser = async (req, res) => {
@@ -483,3 +485,80 @@ cron.schedule('0 * * * *', async () => {
   scheduled: true,
   timezone: "Asia/Kolkata" 
 });
+
+
+exports.createRandomNewsImage = async (req, res) => {
+  try {
+    const apiKey = '3383646ed59843808082334b26772c94';
+    const countryCode = 'us'; // Set the country code to US for testing
+
+    const params = {
+      country: countryCode,
+      pageSize: 1,
+      apiKey: apiKey,
+    };
+
+    const response = await axios.get('https://newsapi.org/v2/top-headlines', { params });
+    const articles = response.data.articles;
+
+    if (articles.length === 0) {
+      return res.status(404).json({ error: 'No articles found' });
+    }
+
+    const article = articles[0];
+    const imageUrl = await createNewsImage(article.title, article.urlToImage, article.publishedAt);
+
+    res.status(200).json({ message: 'Image created successfully', imageUrl: imageUrl });
+  } catch (error) {
+    console.error("Error fetching random news article or creating image:", error);
+    res.status(500).json({ error: 'An error occurred' });
+  }
+};
+
+function createNewsImage(title, urlToImage, publishedAt) {
+  return new Promise((resolve, reject) => {
+    const templatePath = path.join(__dirname, '../scripts/test.png'); // Path to your template image
+    const uploadsDir = path.join(__dirname, '../public/uploads');
+    const baseUrl = 'http://localhost:8000/uploads'; // Adjust this URL as needed
+
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+
+    const fileName = `news_${publishedAt}.png`;
+    const outputFilename = path.join(uploadsDir, fileName);
+    const publicFileUrl = `${baseUrl}/${fileName}`;
+
+    const scriptPath = path.join(__dirname, '../scripts/image.py');
+
+    const pythonProcess = spawn('python3', [
+      scriptPath,
+      templatePath,
+      urlToImage,
+      title,
+      outputFilename
+    ]);
+
+    let dataOutput = '';
+    let errorOutput = '';
+
+    pythonProcess.stdout.on('data', (data) => {
+      dataOutput += data.toString();
+    });
+
+    pythonProcess.stderr.on('data', (data) => {
+      errorOutput += data.toString();
+    });
+
+    pythonProcess.on('close', (code) => {
+      if (code === 0) {
+        console.log(`Generated image saved at ${outputFilename}`);
+        console.log(`Generated image link: ${publicFileUrl}`);
+        resolve(publicFileUrl);
+      } else {
+        console.error(`Python script failed with code ${code} and error: ${errorOutput}`);
+        reject(new Error(`Error processing image for news with title "${title}"`));
+      }
+    });
+  });
+}
