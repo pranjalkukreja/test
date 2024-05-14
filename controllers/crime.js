@@ -32,10 +32,12 @@ exports.uploadImage = async (req, res) => {
     const fileType = file.mimetype.split('/')[1]; // 'jpeg', 'png', 'gif', 'pdf', etc.
     const validImageTypes = ['jpeg', 'jpg', 'png', 'gif'];
     const extension = validImageTypes.includes(fileType) ? fileType : 'pdf';
+    console.log(file);
 
     const fileName = `${Date.now()}.${extension}`; // Use 'extension' instead of hardcoding 'jpg'
     const uploadsDir = path.join(__dirname, '../public/uploads');
     const filePath = path.join(uploadsDir, fileName);
+    console.log(fileName);
 
     // Ensure the uploads directory exists
     if (!fs.existsSync(uploadsDir)) {
@@ -45,7 +47,7 @@ exports.uploadImage = async (req, res) => {
     // Move the file
     fs.renameSync(file.path, filePath);
 
-    const publicFileUrl = `https://inlooop.com/uploads/${fileName}`;
+    const publicFileUrl = `http://localhost:8000/uploads/${fileName}`;
     // For production, you might switch the URL to something like:
     // const publicFileUrl = `https://yourdomain.com/uploads/${fileName}`;
 
@@ -83,11 +85,7 @@ exports.remove = async (req, res) => {
       const filePath = path.join(__dirname, '../public/uploads', image_id);
       // Delete the image file from the filesystem
       fs.unlink(filePath, (err) => {
-        if (err) {
-          // If there's an error, it could be that the file doesn't exist or is inaccessible
-          console.error(err);
-          return res.status(500).json({ success: false, message: "Failed to delete image from filesystem." });
-        }
+     
         // If the file was deleted successfully, send a confirmation response
         res.json({ success: true, message: "Image deleted successfully." });
       });
