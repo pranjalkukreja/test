@@ -359,7 +359,7 @@ exports.sendExpoNotifications = async (req, res) => {
 exports.fetchNewsAndPrepareNotifications = async (req, res) => {
   try {
     const uniqueCountryCodes = await Guest.distinct("countryCode");
-    const apiKey = '3383646ed59843808082334b26772c94';
+    const apiKey = '307e1bb50d9a470f890df5280aab94b7';
     const newsByCountry = {};
     const notificationCounts = {};
 
@@ -525,7 +525,7 @@ exports.createRandomNewsImage = async (article) => {
       model: "gpt-3.5-turbo",
       messages: [
         { role: "system", content: "You are a helpful assistant." },
-        { role: "user", content: `Create a detailed caption and 25-30 relevant hashtags from this text: "${article.title}. ${article.description}. ${article.content}". Just give me the best summarization of it and give me the content straight, dont give me anything else such as this is the information or anything. Also dont mention caption or hashtags in the post  this will directly go to insta so dont make it feel like AI generated` },
+        { role: "user", content: `Create a detailed 80-90 words caption and 25-30 relevant hashtags from this text: "${article.title}. ${article.description}. ${article.content}". Just give me the best summarization of it and give me the content straight, dont give me anything else such as this is the information or anything. Also dont mention caption or hashtags in the post  this will directly go to insta so dont make it feel like AI generated` },
       ],
     });
 
