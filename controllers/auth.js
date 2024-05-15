@@ -506,7 +506,7 @@ exports.createRandomNewsImage = async (article) => {
       model: "gpt-3.5-turbo",
       messages: [
         { role: "system", content: "You are a helpful assistant." },
-        { role: "user", content: `Create a concise title from this text: "${article.title}. ${article.description}. ${article.content}". Make sure that it is in 11-13 words as it will come on the pics that goes to instagram  Just give me the caption and nothing else. dnt mention here is the caption or anything else  just the content i want as it will directly go to customer` },
+        { role: "user", content: `Create a concise title from this text: "${article.title}. ${article.description}. ${article.content}". Make sure that it is in 11-13 words as it will come on the pics that goes to instagram  Just give me the caption and nothing else. dnt mention here is the caption or anything else  just the content i want as it will directly go to customer. Also dont put the output in commas` },
       ],
     });
 
@@ -525,7 +525,7 @@ exports.createRandomNewsImage = async (article) => {
       model: "gpt-3.5-turbo",
       messages: [
         { role: "system", content: "You are a helpful assistant." },
-        { role: "user", content: `Create a detailed 80-90 words caption and 25-30 relevant hashtags from this text: "${article.title}. ${article.description}. ${article.content}". Just give me the best summarization of it and give me the content straight, dont give me anything else such as this is the information or anything. Also dont mention caption or hashtags in the post  this will directly go to insta so dont make it feel like AI generated` },
+        { role: "user", content: `Create a detailed 80-90 words caption and 25-30 relevant hashtags from this text: "${article.title}. ${article.description}. ${article.content}". Just give me the best summarization with details of it and give me the content straight, dont give me anything else such as this is the information or anything. Also dont mention caption or hashtags in the post  this will directly go to insta so dont make it feel like AI generated. Also dont put the caption in commas` },
       ],
     });
 
