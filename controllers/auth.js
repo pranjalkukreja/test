@@ -359,7 +359,7 @@ exports.sendExpoNotifications = async (req, res) => {
 exports.fetchNewsAndPrepareNotifications = async (req, res) => {
   try {
     const uniqueCountryCodes = await Guest.distinct("countryCode");
-    const apiKey = '3383646ed59843808082334b26772c94';
+    const apiKey = '0d63ebcbbf464b8b8f4f5d44c2d80ad7';
     const newsByCountry = {};
     const notificationCounts = {};
 
