@@ -555,3 +555,111 @@ exports.createRandomNewsImage = async (article) => {
 };
 
 
+// Add your API keys here
+const apiKeys = [
+  '0d63ebcbbf464b8b8f4f5d44c2d80ad7',
+  '93f4c59c9fd648fb8bd12c85c3c48350',
+  '619448c0e5c64ef597138852ad331cc6',
+  '0c9cae5d81a34a96b2450fcb68078f14',
+  '307e1bb50d9a470f890df5280aab94b7',
+  '4141c9c37c2d4c9492c3154692f316c1',
+  '4925dfcf7ec84f5a97e55af95812cf60',
+  '9e93e49561894827a9598b6b00018339',
+  '04fc7417a23e435e9a53cccf862be2ca',
+  '5eb6c1d605ff4d1aaef0a0753bc437c0',
+  'e1c3df52a3d9439fa286ef24c11de7b6',
+  '44cc43a8bfae47a5bc9cd0dbff35e406',
+
+  // ... add up to 20 keys
+];
+let currentApiKeyIndex = 0;
+let apiKeyUsageCount = new Array(apiKeys.length).fill(0);
+
+const getNextApiKey = () => {
+  if (apiKeyUsageCount[currentApiKeyIndex] >= 17) {
+    currentApiKeyIndex = (currentApiKeyIndex + 1) % apiKeys.length;
+  }
+  apiKeyUsageCount[currentApiKeyIndex]++;
+  return apiKeys[currentApiKeyIndex];
+};
+
+const fetchUSNewsAndCreateImage = async () => {
+  try {
+    const countryCode = 'US';
+    const countryName = 'United States';
+    let page = 1;
+    let articles;
+    let apiKey = getNextApiKey();
+
+    do {
+      const params = {
+        country: countryCode,
+        pageSize: 1,
+        page: page++,
+        apiKey: apiKey,
+      };
+
+      let response;
+      try {
+        response = await axios.get('https://newsapi.org/v2/top-headlines', { params });
+      } catch (error) {
+        console.error(`Error fetching news for ${countryCode} with API key ${apiKey}:`, error);
+        apiKey = getNextApiKey();
+        continue;
+      }
+
+      articles = response.data.articles;
+
+      const articleTitles = articles.map(article => article.title);
+      const sentArticles = await Article.find({ 'title': { $in: articleTitles }, 'url': { $in: articles.map(article => article.url) } });
+
+      if (sentArticles.length === 0) break;
+    } while (articles.length > 0);
+
+    if (articles.length === 0) return;
+
+    await Promise.all(articles.map(article => {
+      const articleToSave = {
+        source: {
+          id: article.source.id,
+          name: article.source.name,
+        },
+        author: article.author,
+        title: article.title,
+        description: article.description,
+        url: article.url,
+        urlToImage: article.urlToImage,
+        publishedAt: article.publishedAt,
+        content: article.content,
+      };
+      return Article.findOneAndUpdate({ url: article.url }, articleToSave, { upsert: true, new: true });
+    }));
+
+    if (articles.length > 0) {
+      await exports.createRandomNewsImage(articles[0]);
+    }
+  } catch (error) {
+    console.error('Error fetching US news or creating image:', error);
+  }
+};
+
+cron.schedule('*/5 * * * *', async () => {
+  console.log('Running fetchUSNewsAndCreateImage every 5 minutes');
+  try {
+    await fetchUSNewsAndCreateImage();
+  } catch (error) {
+    console.error('Error during scheduled task:', error);
+  }
+}, {
+  scheduled: true,
+  timezone: 'Asia/Kolkata',
+});
+
+cron.schedule('0 0 * * *', () => {
+  console.log('Resetting API key usage counters at midnight');
+  apiKeyUsageCount.fill(0);
+  currentApiKeyIndex = 0;
+}, {
+  scheduled: true,
+  timezone: 'Asia/Kolkata',
+});
