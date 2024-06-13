@@ -359,7 +359,7 @@ exports.sendExpoNotifications = async (req, res) => {
 exports.fetchNewsAndPrepareNotifications = async (req, res) => {
   try {
     const uniqueCountryCodes = await Guest.distinct("countryCode");
-    const apiKey = '0d63ebcbbf464b8b8f4f5d44c2d80ad7';
+    const apiKey = getNextApiKey();
     const newsByCountry = {};
     const notificationCounts = {};
 
@@ -512,7 +512,7 @@ exports.createRandomNewsImage = async (article) => {
 
     const conciseTitle = titleResponse.data.choices[0].message.content.trim();
     console.log(conciseTitle);
-    // Now use axios to post data to your own API to create an image
+    // Now use axios to  data to your own API to create an image
     const imageResponse = await axios.post('https://optimamart.com/api/create-image-loop', {
       title: conciseTitle,
       urlToImage: article.urlToImage,
@@ -530,7 +530,7 @@ exports.createRandomNewsImage = async (article) => {
     });
 
     const captionDetails = captionResponse.data.choices[0].message.content.trim();
-    console.log(captionDetails);
+    console.log(captionDetails, imageUrl);
 
     const instagramParams = {
       image_url: imageUrl,
@@ -538,26 +538,41 @@ exports.createRandomNewsImage = async (article) => {
       access_token: 'EAADLqeAjhXEBOZCgFiysRVtZBxY505GYrIBkCdEiOWZB5ZAU13YlmgvAf7Emb2LB3aWdCqmwPKCOzukclk5WxsVZAZCGUVZCZAHPkxNWNaa0E3o6pD4AmHLMXALNVPEiXywQSQNENgfwG50dXsQWXOLZCQ4PsYCRs7XmxjHDjEVZC66YhYBPsrlBkITg9JdLABTmWBdC82efk2',
     };
 
-    const instagramResponse = await axios.post(`https://graph.facebook.com/v14.0/17841461851346646/media`, instagramParams);
-    const creationId = instagramResponse.data.id;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        const instagramResponse = await axios.post('https://graph.facebook.com/v16.0/17841461851346646/media', instagramParams);
+        console.log('Instagram Response:', instagramResponse.data);
 
-    // Publish the media creation to Instagram
-    const publishResponse = await axios.post(`https://graph.facebook.com/v14.0/17841461851346646/media_publish`, {
-      creation_id: creationId,
-      access_token: 'EAADLqeAjhXEBOZCgFiysRVtZBxY505GYrIBkCdEiOWZB5ZAU13YlmgvAf7Emb2LB3aWdCqmwPKCOzukclk5WxsVZAZCGUVZCZAHPkxNWNaa0E3o6pD4AmHLMXALNVPEiXywQSQNENgfwG50dXsQWXOLZCQ4PsYCRs7XmxjHDjEVZC66YhYBPsrlBkITg9JdLABTmWBdC82efk2'
-    });
+        const creationId = instagramResponse.data.id;
+
+        const publishResponse = await axios.post('https://graph.facebook.com/v16.0/17841461851346646/media_publish', {
+          creation_id: creationId,
+          access_token: 'EAADLqeAjhXEBOZCgFiysRVtZBxY505GYrIBkCdEiOWZB5ZAU13YlmgvAf7Emb2LB3aWdCqmwPKCOzukclk5WxsVZAZCGUVZCZAHPkxNWNaa0E3o6pD4AmHLMXALNVPEiXywQSQNENgfwG50dXsQWXOLZCQ4PsYCRs7XmxjHDjEVZC66YhYBPsrlBkITg9JdLABTmWBdC82efk2',
+        });
+
+        return { message: 'Image posted successfully to Instagram', instagramPostId: publishResponse.data.id };
+      } catch (error) {
+        if (error.response && error.response.data.error && error.response.data.error.code === -2 && attempt < 3) {
+          console.warn(`Attempt ${attempt} failed due to timeout. Retrying...`);
+          await new Promise(res => setTimeout(res, 5000)); // Wait 5 seconds before retrying
+        } else {
+          throw error;
+        }
+      }
+    }
 
     return { message: 'Image posted successfully to Instagram', instagramPostId: publishResponse.data.id };
   } catch (error) {
-    console.error("Error fetching random news article or creating image:", error);
-    res.status(500).json({ error: 'An error occurred' });
+    console.error('Error creating image or posting to Instagram:', error.response ? error.response.data : error);
+    // res.status(500).json({ error: 'An error occurred' });
   }
 };
 
 
 // Add your API keys here
 const apiKeys = [
-  '0d63ebcbbf464b8b8f4f5d44c2d80ad7',
+  '6a010224af40489bbbb95b6f72702c0d',
+  '44cc43a8bfae47a5bc9cd0dbff35e406',
   '93f4c59c9fd648fb8bd12c85c3c48350',
   '619448c0e5c64ef597138852ad331cc6',
   '0c9cae5d81a34a96b2450fcb68078f14',
@@ -568,29 +583,35 @@ const apiKeys = [
   '04fc7417a23e435e9a53cccf862be2ca',
   '5eb6c1d605ff4d1aaef0a0753bc437c0',
   'e1c3df52a3d9439fa286ef24c11de7b6',
-  '44cc43a8bfae47a5bc9cd0dbff35e406',
-
+  '0d63ebcbbf464b8b8f4f5d44c2d80ad7',
+  '6a010224af40489bbbb95b6f72702c0d'
   // ... add up to 20 keys
 ];
 let currentApiKeyIndex = 0;
 let apiKeyUsageCount = new Array(apiKeys.length).fill(0);
 
 const getNextApiKey = () => {
-  if (apiKeyUsageCount[currentApiKeyIndex] >= 17) {
+  if (apiKeyUsageCount[currentApiKeyIndex] >= 10) {
     currentApiKeyIndex = (currentApiKeyIndex + 1) % apiKeys.length;
   }
   apiKeyUsageCount[currentApiKeyIndex]++;
   return apiKeys[currentApiKeyIndex];
 };
 
-const fetchUSNewsAndCreateImage = async () => {
+const fetchUSNewsAndCreateImage = async (retryCount = 0) => {
   try {
+
+    const remainingQuota = await checkRateLimit();
+    if (remainingQuota == 0) {
+      console.log('Rate limit too low, skipping posting.', remainingQuota);
+      return;
+    }
     const countryCode = 'US';
     const countryName = 'United States';
     let page = 1;
     let articles;
     let apiKey = getNextApiKey();
-
+    console.log(apiKey);
     do {
       const params = {
         country: countryCode,
@@ -603,9 +624,16 @@ const fetchUSNewsAndCreateImage = async () => {
       try {
         response = await axios.get('https://newsapi.org/v2/top-headlines', { params });
       } catch (error) {
-        console.error(`Error fetching news for ${countryCode} with API key ${apiKey}:`, error);
-        apiKey = getNextApiKey();
-        continue;
+        if (error.response && error.response.status === 429) {
+          console.error(`Error fetching news for ${countryCode} with API key ${apiKey}:`, error);
+          if (retryCount < apiKeys.length) {
+            return fetchUSNewsAndCreateImage(retryCount + 1); // Retry with the next API key
+          } else {
+            throw new Error('All API keys have been rate limited.');
+          }
+        } else {
+          throw error;
+        }
       }
 
       articles = response.data.articles;
@@ -663,3 +691,23 @@ cron.schedule('0 0 * * *', () => {
   scheduled: true,
   timezone: 'Asia/Kolkata',
 });
+
+const checkRateLimit = async () => {
+  const userId = '17841461851346646';  // Replace with your Instagram user ID
+  const accessToken = 'EAADLqeAjhXEBOZCgFiysRVtZBxY505GYrIBkCdEiOWZB5ZAU13YlmgvAf7Emb2LB3aWdCqmwPKCOzukclk5WxsVZAZCGUVZCZAHPkxNWNaa0E3o6pD4AmHLMXALNVPEiXywQSQNENgfwG50dXsQWXOLZCQ4PsYCRs7XmxjHDjEVZC66YhYBPsrlBkITg9JdLABTmWBdC82efk2';  // Replace with your access token
+
+  try {
+    const response = await axios.get(`https://graph.facebook.com/v16.0/${userId}/content_publishing_limit`, {
+      params: {
+        access_token: accessToken,
+      },
+    });
+    const quota_limit = 50;
+    const { quota_usage } = response.data.data[0];
+    console.log(`Current quota usage: ${quota_usage}, quota limit: ${quota_limit}`);
+    return quota_limit - quota_usage;
+  } catch (error) {
+    console.error('Error checking rate limit:', error.response ? error.response.data : error);
+    return 0;  // Assume no remaining quota if there is an error
+  }
+};
