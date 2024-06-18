@@ -359,7 +359,7 @@ exports.sendExpoNotifications = async (req, res) => {
 exports.fetchNewsAndPrepareNotifications = async (req, res) => {
   try {
     const uniqueCountryCodes = await Guest.distinct("countryCode");
-    const apiKey = getNextApiKey();
+    const apiKey = 'b91c64a54efb418fb08e4422357471b5';
     const newsByCountry = {};
     const notificationCounts = {};
 
@@ -417,7 +417,7 @@ exports.fetchNewsAndPrepareNotifications = async (req, res) => {
       notificationCounts[countryCode] = 0;
 
       if (countryCode.toUpperCase() === 'US' && articles.length > 0) {
-         exports.createRandomNewsImage(articles[0]);  // Assuming createRandomNewsImage is modified to accept an article object
+         exports.createRandomNewsVideo(articles[0]);  // Assuming createRandomNewsImage is modified to accept an article object
       }
     }
 
@@ -709,5 +709,77 @@ const checkRateLimit = async () => {
   } catch (error) {
     console.error('Error checking rate limit:', error.response ? error.response.data : error);
     return 0;  // Assume no remaining quota if there is an error
+  }
+};
+
+
+exports.createRandomNewsVideo = async (article) => {
+  try {
+    // Generate a concise title using OpenAI
+    const titleResponse = await openai.createChatCompletion({
+      model: "gpt-3.5-turbo",
+      messages: [
+        { role: "system", content: "You are a helpful assistant." },
+        { role: "user", content: `Create a concise title from this text: "${article.title}. ${article.description}. ${article.content}". Make sure that it is in 11-13 words as it will come on the pics that goes to instagram  Just give me the caption and nothing else. dnt mention here is the caption or anything else  just the content i want as it will directly go to customer. Also dont put the output in quotations and also make the title which is easy to understand` },
+      ],
+    });
+
+    const conciseTitle = titleResponse.data.choices[0].message.content.trim();
+    console.log(conciseTitle);
+
+    // Now use axios to send data to your own API to create a video
+    const videoResponse = await axios.post('https://optimamart.com/api/create-video-loop', {
+      title: conciseTitle,
+      urlToImage: article.urlToImage,
+      description: article.description,
+      publishedAt: article.publishedAt
+    });
+
+    // Assuming the video creation endpoint returns the URL of the created video
+    const videoUrl = videoResponse.data.videoUrl;
+    const captionResponse = await openai.createChatCompletion({
+      model: "gpt-3.5-turbo",
+      messages: [
+        { role: "system", content: "You are a helpful assistant." },
+        { role: "user", content: `Create a detailed 80-90 words caption and 25-30 relevant hashtags from this text: "${article.title}. ${article.description}. ${article.content}". Just give me the best summarization with details of it and give me the content straight, dont give me anything else such as this is the information or anything. Also dont mention caption or hashtags in the post  this will directly go to insta so dont make it feel like AI generated. Also dont put the caption in commas` },
+      ],
+    });
+
+    const captionDetails = captionResponse.data.choices[0].message.content.trim();
+    console.log(captionDetails, videoUrl);
+
+    const instagramParams = {
+      media_type: 'REELS',
+      video_url: videoUrl,
+      caption: captionDetails,
+      access_token: 'EAADLqeAjhXEBOZCgFiysRVtZBxY505GYrIBkCdEiOWZB5ZAU13YlmgvAf7Emb2LB3aWdCqmwPKCOzukclk5WxsVZAZCGUVZCZAHPkxNWNaa0E3o6pD4AmHLMXALNVPEiXywQSQNENgfwG50dXsQWXOLZCQ4PsYCRs7XmxjHDjEVZC66YhYBPsrlBkITg9JdLABTmWBdC82efk2',
+    };
+
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        const instagramResponse = await axios.post('https://graph.facebook.com/v16.0/17841461851346646/media', instagramParams);
+        console.log('Instagram Response:', instagramResponse.data);
+
+        const creationId = instagramResponse.data.id;
+
+        const publishResponse = await axios.post('https://graph.facebook.com/v16.0/17841461851346646/media_publish', {
+          creation_id: creationId,
+          access_token: 'EAADLqeAjhXEBOZCgFiysRVtZBxY505GYrIBkCdEiOWZB5ZAU13YlmgvAf7Emb2LB3aWdCqmwPKCOzukclk5WxsVZAZCGUVZCZAHPkxNWNaa0E3o6pD4AmHLMXALNVPEiXywQSQNENgfwG50dXsQWXOLZCQ4PsYCRs7XmxjHDjEVZC66YhYBPsrlBkITg9JdLABTmWBdC82efk2',
+        });
+
+        return { message: 'Video posted successfully to Instagram', instagramPostId: publishResponse.data.id };
+      } catch (error) {
+        if (error.response && error.response.data.error && error.response.data.error.code === -2 && attempt < 3) {
+          console.warn(`Attempt ${attempt} failed due to timeout. Retrying...`);
+          await new Promise(res => setTimeout(res, 5000)); // Wait 5 seconds before retrying
+        } else {
+          throw error;
+        }
+      }
+    }
+
+    return { message: 'Video posted successfully to Instagram', instagramPostId: publishResponse.data.id };
+  } catch (error) {
+    console.error('Error creating video or posting to Instagram:', error.response ? error.response.data : error);
   }
 };
