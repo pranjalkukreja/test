@@ -359,7 +359,7 @@ exports.sendExpoNotifications = async (req, res) => {
 exports.fetchNewsAndPrepareNotifications = async (req, res) => {
   try {
     const uniqueCountryCodes = await Guest.distinct("countryCode");
-    const apiKey = getNextApiKey();
+    const apiKey = 'fc8787c5db404ddda0f7efc4c2120ff3';
     const newsByCountry = {};
     const notificationCounts = {};
 
@@ -585,7 +585,8 @@ const apiKeys = [
   'e1c3df52a3d9439fa286ef24c11de7b6',
   '0d63ebcbbf464b8b8f4f5d44c2d80ad7',
   '6a010224af40489bbbb95b6f72702c0d',
-  '2778ebc590834985b798a228345e9a83'
+  '2778ebc590834985b798a228345e9a83',
+  'fc8787c5db404ddda0f7efc4c2120ff3'
   // ... add up to 20 keys
 ];
 let currentApiKeyIndex = 0;
@@ -603,7 +604,7 @@ const fetchUSNewsAndCreateImage = async (retryCount = 0) => {
   try {
 
     const remainingQuota = await checkRateLimit();
-    if (remainingQuota == 0) {
+    if (remainingQuota < 1) {
       console.log('Rate limit too low, skipping posting.', remainingQuota);
       return;
     }
