@@ -359,7 +359,7 @@ exports.sendExpoNotifications = async (req, res) => {
 exports.fetchNewsAndPrepareNotifications = async (req, res) => {
   try {
     const uniqueCountryCodes = await Guest.distinct("countryCode");
-    const apiKey = 'b91c64a54efb418fb08e4422357471b5';
+    const apiKey = getNextApiKey();
     const newsByCountry = {};
     const notificationCounts = {};
 
@@ -584,7 +584,8 @@ const apiKeys = [
   '5eb6c1d605ff4d1aaef0a0753bc437c0',
   'e1c3df52a3d9439fa286ef24c11de7b6',
   '0d63ebcbbf464b8b8f4f5d44c2d80ad7',
-  '6a010224af40489bbbb95b6f72702c0d'
+  '6a010224af40489bbbb95b6f72702c0d',
+  '2778ebc590834985b798a228345e9a83'
   // ... add up to 20 keys
 ];
 let currentApiKeyIndex = 0;
@@ -608,6 +609,7 @@ const fetchUSNewsAndCreateImage = async (retryCount = 0) => {
     }
     const countryCode = 'US';
     const countryName = 'United States';
+
     let page = 1;
     let articles;
     let apiKey = getNextApiKey();
@@ -702,7 +704,7 @@ const checkRateLimit = async () => {
         access_token: accessToken,
       },
     });
-    const quota_limit = 50;
+    const quota_limit = 35;
     const { quota_usage } = response.data.data[0];
     console.log(`Current quota usage: ${quota_usage}, quota limit: ${quota_limit}`);
     return quota_limit - quota_usage;
@@ -752,17 +754,19 @@ exports.createRandomNewsVideo = async (article) => {
       media_type: 'REELS',
       video_url: videoUrl,
       caption: captionDetails,
+      share_to_feed: true,
       access_token: 'EAADLqeAjhXEBOZCgFiysRVtZBxY505GYrIBkCdEiOWZB5ZAU13YlmgvAf7Emb2LB3aWdCqmwPKCOzukclk5WxsVZAZCGUVZCZAHPkxNWNaa0E3o6pD4AmHLMXALNVPEiXywQSQNENgfwG50dXsQWXOLZCQ4PsYCRs7XmxjHDjEVZC66YhYBPsrlBkITg9JdLABTmWBdC82efk2',
     };
 
     for (let attempt = 1; attempt <= 3; attempt++) {
       try {
-        const instagramResponse = await axios.post('https://graph.facebook.com/v16.0/17841461851346646/media', instagramParams);
+        const instagramResponse = await axios.post('https://graph.facebook.com/v19.0/17841461851346646/media', instagramParams);
         console.log('Instagram Response:', instagramResponse.data);
 
         const creationId = instagramResponse.data.id;
+        await waitForMediaToBeReady(creationId, 'EAADLqeAjhXEBOZCgFiysRVtZBxY505GYrIBkCdEiOWZB5ZAU13YlmgvAf7Emb2LB3aWdCqmwPKCOzukclk5WxsVZAZCGUVZCZAHPkxNWNaa0E3o6pD4AmHLMXALNVPEiXywQSQNENgfwG50dXsQWXOLZCQ4PsYCRs7XmxjHDjEVZC66YhYBPsrlBkITg9JdLABTmWBdC82efk2');
 
-        const publishResponse = await axios.post('https://graph.facebook.com/v16.0/17841461851346646/media_publish', {
+        const publishResponse = await axios.post('https://graph.facebook.com/v19.0/17841461851346646/media_publish', {
           creation_id: creationId,
           access_token: 'EAADLqeAjhXEBOZCgFiysRVtZBxY505GYrIBkCdEiOWZB5ZAU13YlmgvAf7Emb2LB3aWdCqmwPKCOzukclk5WxsVZAZCGUVZCZAHPkxNWNaa0E3o6pD4AmHLMXALNVPEiXywQSQNENgfwG50dXsQWXOLZCQ4PsYCRs7XmxjHDjEVZC66YhYBPsrlBkITg9JdLABTmWBdC82efk2',
         });
@@ -782,4 +786,29 @@ exports.createRandomNewsVideo = async (article) => {
   } catch (error) {
     console.error('Error creating video or posting to Instagram:', error.response ? error.response.data : error);
   }
+};
+
+
+const waitForMediaToBeReady = async (creationId, accessToken) => {
+  for (let attempt = 1; attempt <= 10; attempt++) {
+    try {
+      const statusResponse = await axios.get(`https://graph.facebook.com/v16.0/${creationId}`, {
+        params: {
+          fields: 'status_code',
+          access_token: accessToken
+        }
+      });
+
+      if (statusResponse.data.status_code === 'FINISHED') {
+        return;
+      }
+    } catch (error) {
+      console.error(`Attempt ${attempt} failed with error: ${error.message}`);
+    }
+
+    // Wait for 5 seconds before the next attempt
+    await new Promise(res => setTimeout(res, 5000));
+  }
+
+  throw new Error('Media processing timed out.');
 };
