@@ -10,6 +10,7 @@ const path = require('path');
 const fs = require('fs');
 let expo = new Expo();
 const { Configuration, OpenAIApi } = require("openai");
+const { TwitterApi } = require('twitter-api-v2');
 
 const configuration = new Configuration({
     apiKey: process.env.OPENAI_API_KEY,
@@ -561,6 +562,23 @@ exports.createRandomNewsImage = async (article) => {
       }
     }
 
+    const twitterClient = new TwitterApi({
+      appKey: 'EsvXmLGfoejga5MMv6EGlmS1Q',
+      appSecret: 'upfILyXWYaqbRpjOcKVuw2bv6tq30eSR9ZA4WI8HIf4RXi9gqF',
+      accessToken: '1703422723630964736-9anYfHb5FH5K5HssIlExfPhyBKk7ui',
+      accessSecret: 'RsrOtWNWTJGs2JSu4ShgNuL2iWc4Ul3Z36mXcFQQEvMhQ',
+    });
+
+    const tweetText = `${conciseTitle}\n\n${captionDetails}\n\n${imageUrl}`;
+    try {
+      const tweet = await twitterClient.v2.tweet({
+        text: `${article.description}`,
+      });
+      console.log('Tweet posted successfully', tweet);
+    } catch (error) {
+      console.error('Error posting tweet:', error.response ? error.response.data : error);
+    }
+
     return { message: 'Image posted successfully to Instagram', instagramPostId: publishResponse.data.id };
   } catch (error) {
     console.error('Error creating image or posting to Instagram:', error.response ? error.response.data : error);
@@ -571,7 +589,7 @@ exports.createRandomNewsImage = async (article) => {
 
 // Add your API keys here
 const apiKeys = [
-  '6a010224af40489bbbb95b6f72702c0d',
+  '7a49a813a64d492e9eec3b2e6a5483a0',
   '44cc43a8bfae47a5bc9cd0dbff35e406',
   '93f4c59c9fd648fb8bd12c85c3c48350',
   '619448c0e5c64ef597138852ad331cc6',
@@ -602,20 +620,14 @@ const getNextApiKey = () => {
 
 const fetchUSNewsAndCreateImage = async (retryCount = 0) => {
   try {
-
-    const remainingQuota = await checkRateLimit();
-    if (remainingQuota < 1) {
-      console.log('Rate limit too low, skipping posting.', remainingQuota);
-      return;
-    }
     const countryCode = 'US';
     const countryName = 'United States';
 
     let page = 1;
-    let articles;
+    let articles = [];
     let apiKey = getNextApiKey();
     console.log(apiKey);
-    do {
+    while (true) {
       const params = {
         country: countryCode,
         pageSize: 1,
@@ -626,11 +638,20 @@ const fetchUSNewsAndCreateImage = async (retryCount = 0) => {
       let response;
       try {
         response = await axios.get('https://newsapi.org/v2/top-headlines', { params });
+        articles = response.data.articles;
+        if (articles.length === 0) break;
+
+        const articleTitles = articles.map(article => article.title);
+        const sentArticles = await Article.find({ 'title': { $in: articleTitles }, 'url': { $in: articles.map(article => article.url) } });
+
+        if (sentArticles.length === 0) break;
       } catch (error) {
         if (error.response && error.response.status === 429) {
           console.error(`Error fetching news for ${countryCode} with API key ${apiKey}:`, error);
           if (retryCount < apiKeys.length) {
-            return fetchUSNewsAndCreateImage(retryCount + 1); // Retry with the next API key
+            apiKey = getNextApiKey();
+            retryCount++;
+            continue; // Retry with the next API key
           } else {
             throw new Error('All API keys have been rate limited.');
           }
@@ -638,14 +659,7 @@ const fetchUSNewsAndCreateImage = async (retryCount = 0) => {
           throw error;
         }
       }
-
-      articles = response.data.articles;
-
-      const articleTitles = articles.map(article => article.title);
-      const sentArticles = await Article.find({ 'title': { $in: articleTitles }, 'url': { $in: articles.map(article => article.url) } });
-
-      if (sentArticles.length === 0) break;
-    } while (articles.length > 0);
+    }
 
     if (articles.length === 0) return;
 
@@ -673,6 +687,7 @@ const fetchUSNewsAndCreateImage = async (retryCount = 0) => {
     console.error('Error fetching US news or creating image:', error);
   }
 };
+
 
 cron.schedule('*/5 * * * *', async () => {
   console.log('Running fetchUSNewsAndCreateImage every 5 minutes');
