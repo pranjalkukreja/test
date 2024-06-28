@@ -620,6 +620,12 @@ const getNextApiKey = () => {
 
 const fetchUSNewsAndCreateImage = async (retryCount = 0) => {
   try {
+
+    const remainingQuota = await checkRateLimit();
+    if (remainingQuota < 1) {
+      console.warn('Rate limit too low, skipping posting.');
+      return;
+    }
     const countryCode = 'US';
     const countryName = 'United States';
 
@@ -689,10 +695,11 @@ const fetchUSNewsAndCreateImage = async (retryCount = 0) => {
 };
 
 
-cron.schedule('*/5 * * * *', async () => {
+cron.schedule('*/1 * * * *', async () => {
   console.log('Running fetchUSNewsAndCreateImage every 5 minutes');
   try {
     await fetchUSNewsAndCreateImage();
+    // await findFollowing();
   } catch (error) {
     console.error('Error during scheduled task:', error);
   }
@@ -828,3 +835,46 @@ const waitForMediaToBeReady = async (creationId, accessToken) => {
 
   throw new Error('Media processing timed out.');
 };
+
+const USERNAMES = ['girlalmighty_', 'optima.mart']; // Replace with actual usernames you want to monitor
+  const IG_BUSINESS_ACCOUNT_ID = '17841461851346646';  // Replace with your Instagram user ID
+  const ACCESS_TOKEN = 'EAADLqeAjhXEBOZCgFiysRVtZBxY505GYrIBkCdEiOWZB5ZAU13YlmgvAf7Emb2LB3aWdCqmwPKCOzukclk5WxsVZAZCGUVZCZAHPkxNWNaa0E3o6pD4AmHLMXALNVPEiXywQSQNENgfwG50dXsQWXOLZCQ4PsYCRs7XmxjHDjEVZC66YhYBPsrlBkITg9JdLABTmWBdC82efk2';  // Replace with your access token
+
+
+const getMediaFromUsername = async (username) => {
+  try {
+    const response = await axios.get(`https://graph.facebook.com/v16.0/${IG_BUSINESS_ACCOUNT_ID}`, {
+      params: {
+        fields: `business_discovery.username(${username}){followers_count,media_count,media{id,caption,comments_count,like_count}}`,
+        access_token: ACCESS_TOKEN
+      }
+    });
+
+    if (response.data.business_discovery && response.data.business_discovery.media) {
+      return response.data.business_discovery.media.data;
+    } else {
+      throw new Error('Media data not found in response');
+    }
+  } catch (error) {
+    console.error(`Error fetching media for ${username}:`, error.response ? error.response.data : error.message);
+    return [];
+  }
+};
+
+
+
+
+const findFollowing = async () => {
+
+
+  try {
+    const mediaPromises = USERNAMES.map(username => getMediaFromUsername(username));
+    const mediaResponses = await Promise.all(mediaPromises);
+    const mediaData = mediaResponses.flat(); // Flatten the array of arrays
+
+    console.log(mediaData);
+  } catch (error) {
+    console.error('Error fetching user media:', error.response ? error.response.data : error.message);
+    res.status(500).send('Server Error');
+  }
+}
