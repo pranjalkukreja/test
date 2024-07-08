@@ -6,7 +6,7 @@ const router = express.Router();
 const { authCheck } = require("../middlewares/auth");
 
 // controller
-const { createOrUpdateUser, currentUser, createOrUpdateUserNumber, getFavorites, recordActivity, readUserDetails, createGuest, updateGuestLocation, updateGuestNotifications, getUniqueCountries, updateUserInfo, listAllUsers, listAllGuests, sendExpoNotifications, fetchNewsAndPrepareNotifications, createRandomNewsImage } = require("../controllers/auth");
+const { createOrUpdateUser, currentUser, createOrUpdateUserNumber, getFavorites, recordActivity, readUserDetails, createGuest, updateGuestLocation, updateGuestNotifications, getUniqueCountries, updateUserInfo, listAllUsers, listAllGuests, sendExpoNotifications, fetchNewsAndPrepareNotifications, createRandomNewsImage, getAnswerForQuestion } = require("../controllers/auth");
 
 router.post("/create-or-update-user", authCheck, createOrUpdateUser);
 router.post("/create-or-update-user-phone", authCheck, createOrUpdateUserNumber);
@@ -24,6 +24,7 @@ router.get('/guests/get-all', listAllGuests);
 router.post('/loop/send-notification', sendExpoNotifications);
 router.post("/send-not", fetchNewsAndPrepareNotifications);
 router.get('/create-random-news-image', createRandomNewsImage);
+router.post("/send-question", getAnswerForQuestion);
 
 
 module.exports = router;

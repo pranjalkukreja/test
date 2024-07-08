@@ -13,9 +13,9 @@ const { Configuration, OpenAIApi } = require("openai");
 const { TwitterApi } = require('twitter-api-v2');
 
 const configuration = new Configuration({
-    apiKey: process.env.OPENAI_API_KEY,
-  });
-  const openai = new OpenAIApi(configuration);
+  apiKey: process.env.OPENAI_API_KEY,
+});
+const openai = new OpenAIApi(configuration);
 
 exports.createOrUpdateUser = async (req, res) => {
   const { picture, email, phone_number } = req.user;
@@ -408,7 +408,7 @@ exports.fetchNewsAndPrepareNotifications = async (req, res) => {
         };
         return Article.findOneAndUpdate({ url: article.url }, articleToSave, { upsert: true, new: true });
       }));
-      
+
 
       newsByCountry[countryCode] = {
         articles: articles,
@@ -418,7 +418,7 @@ exports.fetchNewsAndPrepareNotifications = async (req, res) => {
       notificationCounts[countryCode] = 0;
 
       if (countryCode.toUpperCase() === 'US' && articles.length > 0) {
-         exports.createRandomNewsVideo(articles[0]);  // Assuming createRandomNewsImage is modified to accept an article object
+        exports.createRandomNewsVideo(articles[0]);  // Assuming createRandomNewsImage is modified to accept an article object
       }
     }
 
@@ -466,7 +466,7 @@ exports.fetchNewsAndPrepareNotifications = async (req, res) => {
       summary[countryName] = notificationCounts[countryCode];
     }
 
-    
+
 
     res.json({ ok: true, notificationsSentSummary: summary });
 
@@ -489,14 +489,14 @@ function countryCodeToName(code) {
 cron.schedule('0 * * * *', async () => {
   console.log('Running fetchNewsAndPrepareNotifications every 2 hours');
   try {
-      // Assuming fetchNewsAndPrepareNotifications is an async function and doesn't need req, res
-      await exports.fetchNewsAndPrepareNotifications(); // Adjust as needed for your actual function call
+    // Assuming fetchNewsAndPrepareNotifications is an async function and doesn't need req, res
+    await exports.fetchNewsAndPrepareNotifications(); // Adjust as needed for your actual function call
   } catch (error) {
-      console.error("Error during scheduled task:", error);
+    console.error("Error during scheduled task:", error);
   }
 }, {
   scheduled: true,
-  timezone: "Asia/Kolkata" 
+  timezone: "Asia/Kolkata"
 });
 
 
@@ -536,7 +536,7 @@ exports.createRandomNewsImage = async (article) => {
     const instagramParams = {
       image_url: imageUrl,
       caption: captionDetails,
-      access_token: 'EAADLqeAjhXEBOZCgFiysRVtZBxY505GYrIBkCdEiOWZB5ZAU13YlmgvAf7Emb2LB3aWdCqmwPKCOzukclk5WxsVZAZCGUVZCZAHPkxNWNaa0E3o6pD4AmHLMXALNVPEiXywQSQNENgfwG50dXsQWXOLZCQ4PsYCRs7XmxjHDjEVZC66YhYBPsrlBkITg9JdLABTmWBdC82efk2',
+      access_token: 'EAADLqeAjhXEBO1wwyQZB52iqUF8jLZBFFdG9je5g4pmJYLJO1dEHt6DgjiRzLmo5e0yUHHJNZAYLREIskUJMjjWfWHhUaOx4TWKtRET5QnZArVJbMAOJUSZBkOBrW7bESSeZAmbesDWbZAhEmxXyYji1hVIeprX7ZA9sUouisZBVEAtggor30W0fXrauqk4CwxqS7uv2gfTCb',
     };
 
     for (let attempt = 1; attempt <= 3; attempt++) {
@@ -548,7 +548,7 @@ exports.createRandomNewsImage = async (article) => {
 
         const publishResponse = await axios.post('https://graph.facebook.com/v16.0/17841461851346646/media_publish', {
           creation_id: creationId,
-          access_token: 'EAADLqeAjhXEBOZCgFiysRVtZBxY505GYrIBkCdEiOWZB5ZAU13YlmgvAf7Emb2LB3aWdCqmwPKCOzukclk5WxsVZAZCGUVZCZAHPkxNWNaa0E3o6pD4AmHLMXALNVPEiXywQSQNENgfwG50dXsQWXOLZCQ4PsYCRs7XmxjHDjEVZC66YhYBPsrlBkITg9JdLABTmWBdC82efk2',
+          access_token: 'EAADLqeAjhXEBO1wwyQZB52iqUF8jLZBFFdG9je5g4pmJYLJO1dEHt6DgjiRzLmo5e0yUHHJNZAYLREIskUJMjjWfWHhUaOx4TWKtRET5QnZArVJbMAOJUSZBkOBrW7bESSeZAmbesDWbZAhEmxXyYji1hVIeprX7ZA9sUouisZBVEAtggor30W0fXrauqk4CwxqS7uv2gfTCb',
         });
 
         return { message: 'Image posted successfully to Instagram', instagramPostId: publishResponse.data.id };
@@ -695,7 +695,7 @@ const fetchUSNewsAndCreateImage = async (retryCount = 0) => {
 };
 
 
-cron.schedule('*/1 * * * *', async () => {
+cron.schedule('*/5 * * * *', async () => {
   console.log('Running fetchUSNewsAndCreateImage every 5 minutes');
   try {
     await fetchUSNewsAndCreateImage();
@@ -719,7 +719,7 @@ cron.schedule('0 0 * * *', () => {
 
 const checkRateLimit = async () => {
   const userId = '17841461851346646';  // Replace with your Instagram user ID
-  const accessToken = 'EAADLqeAjhXEBOZCgFiysRVtZBxY505GYrIBkCdEiOWZB5ZAU13YlmgvAf7Emb2LB3aWdCqmwPKCOzukclk5WxsVZAZCGUVZCZAHPkxNWNaa0E3o6pD4AmHLMXALNVPEiXywQSQNENgfwG50dXsQWXOLZCQ4PsYCRs7XmxjHDjEVZC66YhYBPsrlBkITg9JdLABTmWBdC82efk2';  // Replace with your access token
+  const accessToken = 'EAADLqeAjhXEBO1wwyQZB52iqUF8jLZBFFdG9je5g4pmJYLJO1dEHt6DgjiRzLmo5e0yUHHJNZAYLREIskUJMjjWfWHhUaOx4TWKtRET5QnZArVJbMAOJUSZBkOBrW7bESSeZAmbesDWbZAhEmxXyYji1hVIeprX7ZA9sUouisZBVEAtggor30W0fXrauqk4CwxqS7uv2gfTCb';  // Replace with your access token
 
   try {
     const response = await axios.get(`https://graph.facebook.com/v16.0/${userId}/content_publishing_limit`, {
@@ -778,7 +778,7 @@ exports.createRandomNewsVideo = async (article) => {
       video_url: videoUrl,
       caption: captionDetails,
       share_to_feed: true,
-      access_token: 'EAADLqeAjhXEBOZCgFiysRVtZBxY505GYrIBkCdEiOWZB5ZAU13YlmgvAf7Emb2LB3aWdCqmwPKCOzukclk5WxsVZAZCGUVZCZAHPkxNWNaa0E3o6pD4AmHLMXALNVPEiXywQSQNENgfwG50dXsQWXOLZCQ4PsYCRs7XmxjHDjEVZC66YhYBPsrlBkITg9JdLABTmWBdC82efk2',
+      access_token: 'EAADLqeAjhXEBO1wwyQZB52iqUF8jLZBFFdG9je5g4pmJYLJO1dEHt6DgjiRzLmo5e0yUHHJNZAYLREIskUJMjjWfWHhUaOx4TWKtRET5QnZArVJbMAOJUSZBkOBrW7bESSeZAmbesDWbZAhEmxXyYji1hVIeprX7ZA9sUouisZBVEAtggor30W0fXrauqk4CwxqS7uv2gfTCb',
     };
 
     for (let attempt = 1; attempt <= 3; attempt++) {
@@ -787,11 +787,11 @@ exports.createRandomNewsVideo = async (article) => {
         console.log('Instagram Response:', instagramResponse.data);
 
         const creationId = instagramResponse.data.id;
-        await waitForMediaToBeReady(creationId, 'EAADLqeAjhXEBOZCgFiysRVtZBxY505GYrIBkCdEiOWZB5ZAU13YlmgvAf7Emb2LB3aWdCqmwPKCOzukclk5WxsVZAZCGUVZCZAHPkxNWNaa0E3o6pD4AmHLMXALNVPEiXywQSQNENgfwG50dXsQWXOLZCQ4PsYCRs7XmxjHDjEVZC66YhYBPsrlBkITg9JdLABTmWBdC82efk2');
+        await waitForMediaToBeReady(creationId, 'EAADLqeAjhXEBO1wwyQZB52iqUF8jLZBFFdG9je5g4pmJYLJO1dEHt6DgjiRzLmo5e0yUHHJNZAYLREIskUJMjjWfWHhUaOx4TWKtRET5QnZArVJbMAOJUSZBkOBrW7bESSeZAmbesDWbZAhEmxXyYji1hVIeprX7ZA9sUouisZBVEAtggor30W0fXrauqk4CwxqS7uv2gfTCb');
 
         const publishResponse = await axios.post('https://graph.facebook.com/v19.0/17841461851346646/media_publish', {
           creation_id: creationId,
-          access_token: 'EAADLqeAjhXEBOZCgFiysRVtZBxY505GYrIBkCdEiOWZB5ZAU13YlmgvAf7Emb2LB3aWdCqmwPKCOzukclk5WxsVZAZCGUVZCZAHPkxNWNaa0E3o6pD4AmHLMXALNVPEiXywQSQNENgfwG50dXsQWXOLZCQ4PsYCRs7XmxjHDjEVZC66YhYBPsrlBkITg9JdLABTmWBdC82efk2',
+          access_token: 'EAADLqeAjhXEBO1wwyQZB52iqUF8jLZBFFdG9je5g4pmJYLJO1dEHt6DgjiRzLmo5e0yUHHJNZAYLREIskUJMjjWfWHhUaOx4TWKtRET5QnZArVJbMAOJUSZBkOBrW7bESSeZAmbesDWbZAhEmxXyYji1hVIeprX7ZA9sUouisZBVEAtggor30W0fXrauqk4CwxqS7uv2gfTCb',
         });
 
         return { message: 'Video posted successfully to Instagram', instagramPostId: publishResponse.data.id };
@@ -837,8 +837,8 @@ const waitForMediaToBeReady = async (creationId, accessToken) => {
 };
 
 const USERNAMES = ['girlalmighty_', 'optima.mart']; // Replace with actual usernames you want to monitor
-  const IG_BUSINESS_ACCOUNT_ID = '17841461851346646';  // Replace with your Instagram user ID
-  const ACCESS_TOKEN = 'EAADLqeAjhXEBOZCgFiysRVtZBxY505GYrIBkCdEiOWZB5ZAU13YlmgvAf7Emb2LB3aWdCqmwPKCOzukclk5WxsVZAZCGUVZCZAHPkxNWNaa0E3o6pD4AmHLMXALNVPEiXywQSQNENgfwG50dXsQWXOLZCQ4PsYCRs7XmxjHDjEVZC66YhYBPsrlBkITg9JdLABTmWBdC82efk2';  // Replace with your access token
+const IG_BUSINESS_ACCOUNT_ID = '17841461851346646';  // Replace with your Instagram user ID
+const ACCESS_TOKEN = 'EAADLqeAjhXEBO1wwyQZB52iqUF8jLZBFFdG9je5g4pmJYLJO1dEHt6DgjiRzLmo5e0yUHHJNZAYLREIskUJMjjWfWHhUaOx4TWKtRET5QnZArVJbMAOJUSZBkOBrW7bESSeZAmbesDWbZAhEmxXyYji1hVIeprX7ZA9sUouisZBVEAtggor30W0fXrauqk4CwxqS7uv2gfTCb';  // Replace with your access token
 
 
 const getMediaFromUsername = async (username) => {
@@ -878,3 +878,65 @@ const findFollowing = async () => {
     res.status(500).send('Server Error');
   }
 }
+
+
+
+// Exportable function to fetch articles and generate an answer using GPT
+exports.getAnswerForQuestion = async (req, res) => {
+  try {
+    const question = req.body.question;
+    const refinedQuestion = await refineQuestion(question);
+    console.log(refinedQuestion);
+    // Fetch articles from the News API
+    const newsResponse = await axios.get('https://newsapi.org/v2/everything', {
+      params: {
+        q: refinedQuestion,
+        pageSize: 5,
+        apiKey: '0d63ebcbbf464b8b8f4f5d44c2d80ad7',
+      },
+    });
+
+    const articles = newsResponse.data.articles;
+    if (!articles.length) {
+      return res.status(404).json({ error: 'No articles found.' });
+    }
+
+    // Combine the text from the articles
+    const articlesText = articles.map(article => `${article.title}. ${article.description}. ${article.content}`).join(' ');
+    // console.log(articlesText);
+    // Generate an answer using OpenAI
+    const answerResponse = await openai.createChatCompletion({
+      model: 'gpt-3.5-turbo',
+      messages: [
+        { role: 'system', content: 'You are a helpful assistant.' },
+        {
+          role: 'user',
+          content: `Based on the following text, answer the question: "${question}". Provide a detailed response with context, including any relevant reports or statements. Also, mention the actual stance on this issue. Here is the text: "${articlesText}". Just give me the answer directly without any additional information.`,
+        },
+      ],
+    });
+
+    const answer = answerResponse.data.choices[0].message.content.trim();
+
+    res.json({ answer });
+  } catch (error) {
+    console.error('Error fetching articles or generating answer:', error);
+    res.status(500).json({ error: 'An error occurred while processing your request.' });
+  }
+};
+const refineQuestion = async (question) => {
+  const refinementResponse = await openai.createChatCompletion({
+    model: 'gpt-3.5-turbo',
+    messages: [
+      { role: 'system', content: 'You are a helpful assistant.' },
+      {
+        role: 'user',
+        content: `Extract the top keywords from the following question for a news search: "${question}". Provide only the keywords, separated by commas.`,
+      },
+    ],
+  });
+
+  const refinedQuestion = refinementResponse.data.choices[0].message.content.trim();
+  
+  return refinedQuestion;
+};
