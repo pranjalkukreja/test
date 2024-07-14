@@ -96,149 +96,198 @@ exports.getInstaMsg = async (req, res) => {
     }
   }
 
-exports.metaMessage = async (req, res) => {
-  console.log('Received message:', JSON.stringify(req.body, null, 2));
-
-  if (req.body.object === 'page') {
-    req.body.entry.forEach(entry => {
-      entry.messaging.forEach(async event => {
-        console.log('Messaging Event:', JSON.stringify(event, null, 2));
-        if (event.message && event.sender) {
-          await handleMessage(event.sender.id, event.message);
-        }
+  const NEWS_API_KEY = '2778ebc590834985b798a228345e9a83'; // Replace with your News API key
+  
+  exports.metaMessage = async (req, res) => {
+    console.log('Received message:', JSON.stringify(req.body, null, 2));
+  
+    if (req.body.object === 'instagram') {
+      req.body.entry.forEach(entry => {
+        entry.messaging.forEach(async event => {
+          console.log('Messaging Event:', JSON.stringify(event, null, 2));
+          if (event.message && event.sender) {
+            const senderId = event.sender.id;
+            const userName = await getUserName(senderId);
+  
+            // Send introduction message with user's name
+            await sendIntroductionMessage(senderId, userName);
+  
+            const messageText = event.message.text;
+  
+            // Handle different quick reply options
+            if (messageText.toLowerCase() === 'website') {
+              await sendWebsiteLink(senderId);
+            } else if (messageText.toLowerCase() === 'check news') {
+              await askKeywordForNews(senderId);
+            } else {
+              // Assume the message is a keyword if it doesn't match known commands
+              await handleKeywordMessage(senderId, messageText);
+            }
+          }
+        });
       });
-    });
-  } else if (req.body.object === 'instagram') {
-    // Handle Instagram messages if needed
-    req.body.entry.forEach(entry => {
-      entry.messaging.forEach(async event => {
-        console.log('Instagram Messaging Event:', JSON.stringify(event, null, 2));
-        if (event.message && event.sender) {
-          // Call a function to respond to the message on Instagram
-          await handleMessage(event.sender.id, event.message);
-        }
-      });
-    });
+    }
+  
+    res.status(200).send('EVENT_RECEIVED');
   }
-
-  res.status(200).send('EVENT_RECEIVED');
-};
-
-async function handleMessage(senderId, message) {
-  let response;
-
-  // Handle different types of messages here
-  if (message.text) {
-    const text = message.text.toLowerCase();
-
-    // Check for specific keywords or commands
-    if (text.includes('hello') || text.includes('hi')) {
-      response = { text: "Hi! How can I assist you today?" };
-    } else if (text.includes('news')) {
-      // Example: Fetch latest news from your API
-      response = await fetchLatestNews();
-    } else {
-      // Default response for unrecognized messages
-      response = {
-        text: "I'm a news bot. How can I assist you today?",
+  
+  async function getUserName(senderId) {
+    const pageAccessToken = 'EAADLqeAjhXEBO5svi3p5BiVidtXAWoirlrnw5yaXwsIscCLTxwDJ3yPwAp7srY66B9CcPqFP2zgbNJKVOznwvUL1YQg909nf63xJNW73Tr3NKyP3143HK7EXcrdLLZBsZBqRWlz6NIDzdRFO5BYEXcZCbt4sMolVhf821ORW3WZCQFrM8rSCy3wwZBloKhHH9l6Ez6pZAz0nHh9snm6QZDZD'; // Replace with your actual access token
+    const url = `https://graph.facebook.com/v16.0/${senderId}?fields=first_name,last_name&access_token=${pageAccessToken}`;
+  
+    try {
+      const response = await axios.get(url);
+      const firstName = response.data.first_name;
+      const lastName = response.data.last_name;
+      return `${firstName} ${lastName}`;
+    } catch (error) {
+      console.error('Error fetching user info:', error.response.data);
+      return 'there';
+    }
+  }
+  
+  async function sendIntroductionMessage(senderId, userName) {
+    const pageAccessToken = 'EAADLqeAjhXEBO5svi3p5BiVidtXAWoirlrnw5yaXwsIscCLTxwDJ3yPwAp7srY66B9CcPqFP2zgbNJKVOznwvUL1YQg909nf63xJNW73Tr3NKyP3143HK7EXcrdLLZBsZBqRWlz6NIDzdRFO5BYEXcZCbt4sMolVhf821ORW3WZCQFrM8rSCy3wwZBloKhHH9l6Ez6pZAz0nHh9snm6QZDZD'; // Replace with your actual access token
+    const url = `https://graph.facebook.com/v16.0/me/messages?access_token=${pageAccessToken}`;
+  
+    const messageData = {
+      recipient: {
+        id: senderId
+      },
+      message: {
+        text: `Hey ${userName}, this is Loop, an interactive news AI chatbot. We're here to change how you get news by combining and comparing Mainstream Legacy Media in real-time through our AI models, ensuring you get the most accurate news about any topic. How can we help you today?`,
         quick_replies: [
           {
             content_type: "text",
-            title: "Browse News",
-            payload: "BROWSE_NEWS"
+            title: "Website",
+            payload: "WEBSITE"
           },
           {
             content_type: "text",
-            title: "Feedback",
-            payload: "GIVE_FEEDBACK"
-          },
-          {
-            content_type: "text",
-            title: "Get Help",
-            payload: "GET_HELP"
+            title: "Check News",
+            payload: "CHECK_NEWS"
           }
         ]
-      };
-    }
-  } else {
-    // Handle attachments or non-text messages
-    response = { text: "I can only process text messages for now. Please type your query." };
-  }
-
-  // Send the response to the user
-  await sendMessageToInstagram(senderId, response);
-}
-
-async function sendMessageToFacebook(senderId, messageData) {
-    const pageAccessToken = 'EAADLqeAjhXEBO5svi3p5BiVidtXAWoirlrnw5yaXwsIscCLTxwDJ3yPwAp7srY66B9CcPqFP2zgbNJKVOznwvUL1YQg909nf63xJNW73Tr3NKyP3143HK7EXcrdLLZBsZBqRWlz6NIDzdRFO5BYEXcZCbt4sMolVhf821ORW3WZCQFrM8rSCy3wwZBloKhHH9l6Ez6pZAz0nHh9snm6QZDZD';  // Replace with your actual page access token
-    const url = `https://graph.facebook.com/v16.0/me/messages?access_token=${pageAccessToken}`;
-
-  const requestBody = {
-    recipient: {
-      id: senderId
-    },
-    message: messageData
-  };
-
-  try {
-    const response = await axios.post(url, requestBody);
-    console.log('Message sent successfully:', response.data);
-  } catch (error) {
-    console.error('Error sending message:', error.response.data);
-  }
-}
-
-async function sendMessageToInstagram(senderId, messageText) {
-  // Implement Instagram message sending if required
-  const pageAccessToken = 'EAADLqeAjhXEBO5svi3p5BiVidtXAWoirlrnw5yaXwsIscCLTxwDJ3yPwAp7srY66B9CcPqFP2zgbNJKVOznwvUL1YQg909nf63xJNW73Tr3NKyP3143HK7EXcrdLLZBsZBqRWlz6NIDzdRFO5BYEXcZCbt4sMolVhf821ORW3WZCQFrM8rSCy3wwZBloKhHH9l6Ez6pZAz0nHh9snm6QZDZD';  // Replace with your actual page access token
-  const url = `https://graph.facebook.com/v16.0/me/messages?access_token=${pageAccessToken}`;
-
-  const requestBody = {
-    recipient: {
-      id: senderId
-    },
-    message: messageText
-  };
-
-  try {
-    const response = await axios.post(url, requestBody);
-    console.log('Message sent successfully:', response.data);
-  } catch (error) {
-    console.error('Error sending message:', error.response.data);
-  }}
-
-async function fetchLatestNews() {
-  // Example function to fetch latest news from your news API
-  const newsArticles = [
-    {
-      title: "Breaking News: Example News Title",
-      subtitle: "Brief summary of the breaking news.",
-      image_url: "https://example.com/news-image.jpg",
-      buttons: [
-        {
-          type: "web_url",
-          url: "https://example.com/article",
-          title: "Read More"
-        }
-      ]
-    }
-    // Add more news articles as needed
-  ];
-
-  const elements = newsArticles.map(article => ({
-    title: article.title,
-    subtitle: article.subtitle,
-    image_url: article.image_url,
-    buttons: article.buttons
-  }));
-
-  return {
-    attachment: {
-      type: "template",
-      payload: {
-        template_type: "generic",
-        elements: elements
       }
+    };
+  
+    try {
+      const response = await axios.post(url, messageData);
+      console.log('Introduction message sent:', response.data);
+    } catch (error) {
+      console.error('Error sending introduction message:', error.response.data);
     }
-  };
-}
+  }
+  
+  async function sendWebsiteLink(senderId) {
+    const pageAccessToken = 'EAADLqeAjhXEBO5svi3p5BiVidtXAWoirlrnw5yaXwsIscCLTxwDJ3yPwAp7srY66B9CcPqFP2zgbNJKVOznwvUL1YQg909nf63xJNW73Tr3NKyP3143HK7EXcrdLLZBsZBqRWlz6NIDzdRFO5BYEXcZCbt4sMolVhf821ORW3WZCQFrM8rSCy3wwZBloKhHH9l6Ez6pZAz0nHh9snm6QZDZD'; // Replace with your actual access token
+    const url = `https://graph.facebook.com/v16.0/me/messages?access_token=${pageAccessToken}`;
+  
+    const messageData = {
+      recipient: {
+        id: senderId
+      },
+      message: {
+        text: "Here's our website: https://inlooop.com"
+      }
+    };
+  
+    try {
+      const response = await axios.post(url, messageData);
+      console.log('Website link sent:', response.data);
+    } catch (error) {
+      console.error('Error sending website link:', error.response.data);
+    }
+  }
+  
+  async function askKeywordForNews(senderId) {
+    const pageAccessToken = 'EAADLqeAjhXEBO5svi3p5BiVidtXAWoirlrnw5yaXwsIscCLTxwDJ3yPwAp7srY66B9CcPqFP2zgbNJKVOznwvUL1YQg909nf63xJNW73Tr3NKyP3143HK7EXcrdLLZBsZBqRWlz6NIDzdRFO5BYEXcZCbt4sMolVhf821ORW3WZCQFrM8rSCy3wwZBloKhHH9l6Ez6pZAz0nHh9snm6QZDZD'; // Replace with your actual access token
+    const url = `https://graph.facebook.com/v16.0/me/messages?access_token=${pageAccessToken}`;
+  
+    const messageData = {
+      recipient: {
+        id: senderId
+      },
+      message: {
+        text: "Please enter a keyword to search for news:"
+      }
+    };
+  
+    try {
+      const response = await axios.post(url, messageData);
+      console.log('Prompt for keyword sent:', response.data);
+    } catch (error) {
+      console.error('Error sending prompt for keyword:', error.response.data);
+    }
+  }
+  
+  async function handleKeywordMessage(senderId, keyword) {
+    const articles = await fetchNewsByKeyword(keyword);
+  
+    if (articles.length === 0) {
+      await sendTextMessage(senderId, "Sorry, I couldn't find any news articles for that keyword.");
+    } else {
+      await sendNewsArticles(senderId, articles);
+    }
+  }
+  
+  async function fetchNewsByKeyword(keyword) {
+    const url = `https://newsapi.org/v2/everything?q=${keyword}&apiKey=${NEWS_API_KEY}&pageSize=5`;
+  
+    try {
+      const response = await axios.get(url);
+      return response.data.articles;
+    } catch (error) {
+      console.error('Error fetching news:', error);
+      return [];
+    }
+  }
+  
+  async function sendNewsArticles(senderId, articles) {
+    const pageAccessToken = 'EAADLqeAjhXEBO5svi3p5BiVidtXAWoirlrnw5yaXwsIscCLTxwDJ3yPwAp7srY66B9CcPqFP2zgbNJKVOznwvUL1YQg909nf63xJNW73Tr3NKyP3143HK7EXcrdLLZBsZBqRWlz6NIDzdRFO5BYEXcZCbt4sMolVhf821ORW3WZCQFrM8rSCy3wwZBloKhHH9l6Ez6pZAz0nHh9snm6QZDZD'; // Replace with your actual access token
+    const url = `https://graph.facebook.com/v16.0/me/messages?access_token=${pageAccessToken}`;
+  
+    let messageText = "Here are the latest news articles:\n\n";
+  
+    articles.forEach((article, index) => {
+      messageText += `${index + 1}. ${article.title}\n${article.url}\n\n`;
+    });
+  
+    const messageData = {
+      recipient: {
+        id: senderId
+      },
+      message: {
+        text: messageText
+      }
+    };
+  
+    try {
+      const response = await axios.post(url, messageData);
+      console.log('News articles sent:', response.data);
+    } catch (error) {
+      console.error('Error sending news articles:', error.response.data);
+    }
+  }
+  
+  async function sendTextMessage(senderId, messageText) {
+    const pageAccessToken = 'EAADLqeAjhXEBO5svi3p5BiVidtXAWoirlrnw5yaXwsIscCLTxwDJ3yPwAp7srY66B9CcPqFP2zgbNJKVOznwvUL1YQg909nf63xJNW73Tr3NKyP3143HK7EXcrdLLZBsZBqRWlz6NIDzdRFO5BYEXcZCbt4sMolVhf821ORW3WZCQFrM8rSCy3wwZBloKhHH9l6Ez6pZAz0nHh9snm6QZDZD'; // Replace with your actual access token
+    const url = `https://graph.facebook.com/v16.0/me/messages?access_token=${pageAccessToken}`;
+  
+    const messageData = {
+      recipient: {
+        id: senderId
+      },
+      message: {
+        text: messageText
+      }
+    };
+  
+    try {
+      const response = await axios.post(url, messageData);
+      console.log('Text message sent:', response.data);
+    } catch (error) {
+      console.error('Error sending text message:', error.response.data);
+    }
+  }
+  
