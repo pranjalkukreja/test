@@ -53,7 +53,7 @@ exports.sendInstaMsg = async (req, res) => {
   }
 };
 
-const PAGE_ACCESS_TOKEN = 'EAADLqeAjhXEBOZCfGGf6fWMZC9wNSOxPazXlhK8rp6A0Fy3ZAnIMlJhZCFtzFZANrJYTvr4ONEZCInbFeyrC92eK4A7r5Rq5LyYbZAgJLZBddix8dsPYFoECIZBmvZAJMyBwJfgMVrFhRVcMa9nh2pQWmzyxLwSgZAtRnZCjdAeNAPBaMZABhRLwnJZApRPuC9qBuPqMONEuEgGdt84ACTW9VE';  // Replace with your Instagram access token
+// const PAGE_ACCESS_TOKEN = 'EAADLqeAjhXEBOZCfGGf6fWMZC9wNSOxPazXlhK8rp6A0Fy3ZAnIMlJhZCFtzFZANrJYTvr4ONEZCInbFeyrC92eK4A7r5Rq5LyYbZAgJLZBddix8dsPYFoECIZBmvZAJMyBwJfgMVrFhRVcMa9nh2pQWmzyxLwSgZAtRnZCjdAeNAPBaMZABhRLwnJZApRPuC9qBuPqMONEuEgGdt84ACTW9VE';  // Replace with your Instagram access token
 const IG_BUSINESS_ACCOUNT_ID = '309469428916643';  // Replace with your Instagram business account ID
 
 exports.getInstaMsg = async (req, res) => {
@@ -97,6 +97,7 @@ exports.getInstaMsg = async (req, res) => {
   }
 
   const NEWS_API_KEY = '2778ebc590834985b798a228345e9a83'; // Replace with your News API key
+  const PAGE_ACCESS_TOKEN = 'EAADLqeAjhXEBO5svi3p5BiVidtXAWoirlrnw5yaXwsIscCLTxwDJ3yPwAp7srY66B9CcPqFP2zgbNJKVOznwvUL1YQg909nf63xJNW73Tr3NKyP3143HK7EXcrdLLZBsZBqRWlz6NIDzdRFO5BYEXcZCbt4sMolVhf821ORW3WZCQFrM8rSCy3wwZBloKhHH9l6Ez6pZAz0nHh9snm6QZDZD'; // Replace with your actual access token
   
   exports.metaMessage = async (req, res) => {
     console.log('Received message:', JSON.stringify(req.body, null, 2));
@@ -108,20 +109,25 @@ exports.getInstaMsg = async (req, res) => {
           if (event.message && event.sender) {
             const senderId = event.sender.id;
             const userName = await getUserName(senderId);
-  
-            // Send introduction message with user's name
-            await sendIntroductionMessage(senderId, userName);
-  
             const messageText = event.message.text;
   
-            // Handle different quick reply options
-            if (messageText.toLowerCase() === 'website') {
-              await sendWebsiteLink(senderId);
-            } else if (messageText.toLowerCase() === 'check news') {
-              await askKeywordForNews(senderId);
-            } else {
-              // Assume the message is a keyword if it doesn't match known commands
-              await handleKeywordMessage(senderId, messageText);
+            if (!event.message.is_echo) {
+              // Check if this is the first message in the conversation
+              const conversationData = await checkConversation(senderId);
+              if (!conversationData) {
+                await sendIntroductionMessage(senderId, userName);
+                await markConversation(senderId); // Mark the conversation to prevent repeat intros
+              }
+  
+              // Handle different quick reply options
+              if (messageText.toLowerCase() === 'website') {
+                await sendWebsiteLink(senderId);
+              } else if (messageText.toLowerCase() === 'check news') {
+                await askKeywordForNews(senderId);
+              } else {
+                // Assume the message is a keyword if it doesn't match known commands
+                await handleKeywordMessage(senderId, messageText);
+              }
             }
           }
         });
@@ -132,8 +138,7 @@ exports.getInstaMsg = async (req, res) => {
   }
   
   async function getUserName(senderId) {
-    const pageAccessToken = 'EAADLqeAjhXEBO5svi3p5BiVidtXAWoirlrnw5yaXwsIscCLTxwDJ3yPwAp7srY66B9CcPqFP2zgbNJKVOznwvUL1YQg909nf63xJNW73Tr3NKyP3143HK7EXcrdLLZBsZBqRWlz6NIDzdRFO5BYEXcZCbt4sMolVhf821ORW3WZCQFrM8rSCy3wwZBloKhHH9l6Ez6pZAz0nHh9snm6QZDZD'; // Replace with your actual access token
-    const url = `https://graph.facebook.com/v16.0/${senderId}?fields=first_name,last_name&access_token=${pageAccessToken}`;
+    const url = `https://graph.facebook.com/v16.0/${senderId}?fields=first_name,last_name&access_token=${PAGE_ACCESS_TOKEN}`;
   
     try {
       const response = await axios.get(url);
@@ -147,8 +152,7 @@ exports.getInstaMsg = async (req, res) => {
   }
   
   async function sendIntroductionMessage(senderId, userName) {
-    const pageAccessToken = 'EAADLqeAjhXEBO5svi3p5BiVidtXAWoirlrnw5yaXwsIscCLTxwDJ3yPwAp7srY66B9CcPqFP2zgbNJKVOznwvUL1YQg909nf63xJNW73Tr3NKyP3143HK7EXcrdLLZBsZBqRWlz6NIDzdRFO5BYEXcZCbt4sMolVhf821ORW3WZCQFrM8rSCy3wwZBloKhHH9l6Ez6pZAz0nHh9snm6QZDZD'; // Replace with your actual access token
-    const url = `https://graph.facebook.com/v16.0/me/messages?access_token=${pageAccessToken}`;
+    const url = `https://graph.facebook.com/v16.0/me/messages?access_token=${PAGE_ACCESS_TOKEN}`;
   
     const messageData = {
       recipient: {
@@ -180,8 +184,7 @@ exports.getInstaMsg = async (req, res) => {
   }
   
   async function sendWebsiteLink(senderId) {
-    const pageAccessToken = 'EAADLqeAjhXEBO5svi3p5BiVidtXAWoirlrnw5yaXwsIscCLTxwDJ3yPwAp7srY66B9CcPqFP2zgbNJKVOznwvUL1YQg909nf63xJNW73Tr3NKyP3143HK7EXcrdLLZBsZBqRWlz6NIDzdRFO5BYEXcZCbt4sMolVhf821ORW3WZCQFrM8rSCy3wwZBloKhHH9l6Ez6pZAz0nHh9snm6QZDZD'; // Replace with your actual access token
-    const url = `https://graph.facebook.com/v16.0/me/messages?access_token=${pageAccessToken}`;
+    const url = `https://graph.facebook.com/v16.0/me/messages?access_token=${PAGE_ACCESS_TOKEN}`;
   
     const messageData = {
       recipient: {
@@ -201,8 +204,7 @@ exports.getInstaMsg = async (req, res) => {
   }
   
   async function askKeywordForNews(senderId) {
-    const pageAccessToken = 'EAADLqeAjhXEBO5svi3p5BiVidtXAWoirlrnw5yaXwsIscCLTxwDJ3yPwAp7srY66B9CcPqFP2zgbNJKVOznwvUL1YQg909nf63xJNW73Tr3NKyP3143HK7EXcrdLLZBsZBqRWlz6NIDzdRFO5BYEXcZCbt4sMolVhf821ORW3WZCQFrM8rSCy3wwZBloKhHH9l6Ez6pZAz0nHh9snm6QZDZD'; // Replace with your actual access token
-    const url = `https://graph.facebook.com/v16.0/me/messages?access_token=${pageAccessToken}`;
+    const url = `https://graph.facebook.com/v16.0/me/messages?access_token=${PAGE_ACCESS_TOKEN}`;
   
     const messageData = {
       recipient: {
@@ -244,21 +246,33 @@ exports.getInstaMsg = async (req, res) => {
   }
   
   async function sendNewsArticles(senderId, articles) {
-    const pageAccessToken = 'EAADLqeAjhXEBO5svi3p5BiVidtXAWoirlrnw5yaXwsIscCLTxwDJ3yPwAp7srY66B9CcPqFP2zgbNJKVOznwvUL1YQg909nf63xJNW73Tr3NKyP3143HK7EXcrdLLZBsZBqRWlz6NIDzdRFO5BYEXcZCbt4sMolVhf821ORW3WZCQFrM8rSCy3wwZBloKhHH9l6Ez6pZAz0nHh9snm6QZDZD'; // Replace with your actual access token
-    const url = `https://graph.facebook.com/v16.0/me/messages?access_token=${pageAccessToken}`;
+    const url = `https://graph.facebook.com/v16.0/me/messages?access_token=${PAGE_ACCESS_TOKEN}`;
   
-    let messageText = "Here are the latest news articles:\n\n";
-  
-    articles.forEach((article, index) => {
-      messageText += `${index + 1}. ${article.title}\n${article.url}\n\n`;
-    });
+    const elements = articles.map(article => ({
+      title: article.title,
+      subtitle: article.description || 'No description available',
+      image_url: article.urlToImage,
+      buttons: [
+        {
+          type: "web_url",
+          url: article.url,
+          title: "Read More"
+        }
+      ]
+    }));
   
     const messageData = {
       recipient: {
         id: senderId
       },
       message: {
-        text: messageText
+        attachment: {
+          type: "template",
+          payload: {
+            template_type: "generic",
+            elements: elements
+          }
+        }
       }
     };
   
@@ -271,8 +285,7 @@ exports.getInstaMsg = async (req, res) => {
   }
   
   async function sendTextMessage(senderId, messageText) {
-    const pageAccessToken = 'EAADLqeAjhXEBO5svi3p5BiVidtXAWoirlrnw5yaXwsIscCLTxwDJ3yPwAp7srY66B9CcPqFP2zgbNJKVOznwvUL1YQg909nf63xJNW73Tr3NKyP3143HK7EXcrdLLZBsZBqRWlz6NIDzdRFO5BYEXcZCbt4sMolVhf821ORW3WZCQFrM8rSCy3wwZBloKhHH9l6Ez6pZAz0nHh9snm6QZDZD'; // Replace with your actual access token
-    const url = `https://graph.facebook.com/v16.0/me/messages?access_token=${pageAccessToken}`;
+    const url = `https://graph.facebook.com/v16.0/me/messages?access_token=${PAGE_ACCESS_TOKEN}`;
   
     const messageData = {
       recipient: {
@@ -289,5 +302,22 @@ exports.getInstaMsg = async (req, res) => {
     } catch (error) {
       console.error('Error sending text message:', error.response.data);
     }
+  }
+  
+  // Utility functions to handle conversation state
+  async function checkConversation(senderId) {
+    // Implement a method to check if the conversation has already started
+    // For example, you can use a database to store conversation states
+    // Here we are simulating it with a simple object
+    const conversations = {}; // Replace with actual database or persistent storage
+    return conversations[senderId];
+  }
+  
+  async function markConversation(senderId) {
+    // Implement a method to mark the conversation as started
+    // For example, you can use a database to store conversation states
+    // Here we are simulating it with a simple object
+    const conversations = {}; // Replace with actual database or persistent storage
+    conversations[senderId] = true;
   }
   
