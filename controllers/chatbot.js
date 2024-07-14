@@ -112,7 +112,7 @@ exports.getInstaMsg = async (req, res) => {
           if (event.message && event.sender) {
             const senderId = event.sender.id;
             const userName = await getUserName(senderId);
-            const messageText = event.message.text;
+            const messageText = event.message.text.toLowerCase();
   
             if (!event.message.is_echo) {
               // Check if this is the first message in the conversation
@@ -122,14 +122,17 @@ exports.getInstaMsg = async (req, res) => {
                 markConversation(senderId); // Mark the conversation to prevent repeat intros
               }
   
-              // Handle different quick reply options
-              if (messageText.toLowerCase() === 'website') {
+              // Handle specific commands
+              if (messageText === 'website') {
                 await sendWebsiteLink(senderId);
-              } else if (messageText.toLowerCase() === 'check news') {
+              } else if (messageText === 'check news') {
                 await askKeywordForNews(senderId);
-              } else {
-                // Assume the message is a keyword if it doesn't match known commands
+              } else if (conversationData === 'awaiting_keyword') {
+                // If the user was prompted for a keyword, handle it
                 await handleKeywordMessage(senderId, messageText);
+              } else {
+                // Respond to general messages without triggering a search
+                await sendDefaultResponse(senderId);
               }
             }
           }
@@ -221,6 +224,7 @@ exports.getInstaMsg = async (req, res) => {
     try {
       const response = await axios.post(url, messageData);
       console.log('Prompt for keyword sent:', response.data);
+      updateConversation(senderId, 'awaiting_keyword'); // Update conversation state
     } catch (error) {
       console.error('Error sending prompt for keyword:', error.response.data);
     }
@@ -234,6 +238,8 @@ exports.getInstaMsg = async (req, res) => {
     } else {
       await sendNewsArticles(senderId, articles);
     }
+  
+    updateConversation(senderId, null); // Reset conversation state
   }
   
   async function fetchNewsByKeyword(keyword) {
@@ -307,6 +313,26 @@ exports.getInstaMsg = async (req, res) => {
     }
   }
   
+  async function sendDefaultResponse(senderId) {
+    const url = `https://graph.facebook.com/v16.0/me/messages?access_token=${PAGE_ACCESS_TOKEN}`;
+  
+    const messageData = {
+      recipient: {
+        id: senderId
+      },
+      message: {
+        text: "How can I assist you today? You can type 'Website' to visit our website or 'Check News' to search for news."
+      }
+    };
+  
+    try {
+      const response = await axios.post(url, messageData);
+      console.log('Default response sent:', response.data);
+    } catch (error) {
+      console.error('Error sending default response:', error.response.data);
+    }
+  }
+  
   // Utility functions to handle conversation state
   function checkConversation(senderId) {
     // Check if the conversation has already started
@@ -315,6 +341,11 @@ exports.getInstaMsg = async (req, res) => {
   
   function markConversation(senderId) {
     // Mark the conversation as started
-    conversations[senderId] = true;
+    conversations[senderId] = 'started';
+  }
+  
+  function updateConversation(senderId, state) {
+    // Update the conversation state
+    conversations[senderId] = state;
   }
   
