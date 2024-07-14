@@ -99,6 +99,9 @@ exports.getInstaMsg = async (req, res) => {
   const NEWS_API_KEY = '2778ebc590834985b798a228345e9a83'; // Replace with your News API key
   const PAGE_ACCESS_TOKEN = 'EAADLqeAjhXEBO5svi3p5BiVidtXAWoirlrnw5yaXwsIscCLTxwDJ3yPwAp7srY66B9CcPqFP2zgbNJKVOznwvUL1YQg909nf63xJNW73Tr3NKyP3143HK7EXcrdLLZBsZBqRWlz6NIDzdRFO5BYEXcZCbt4sMolVhf821ORW3WZCQFrM8rSCy3wwZBloKhHH9l6Ez6pZAz0nHh9snm6QZDZD'; // Replace with your actual access token
   
+  // This will store conversation states in memory. For production, use a database.
+  const conversations = {};
+  
   exports.metaMessage = async (req, res) => {
     console.log('Received message:', JSON.stringify(req.body, null, 2));
   
@@ -113,10 +116,10 @@ exports.getInstaMsg = async (req, res) => {
   
             if (!event.message.is_echo) {
               // Check if this is the first message in the conversation
-              const conversationData = await checkConversation(senderId);
+              const conversationData = checkConversation(senderId);
               if (!conversationData) {
                 await sendIntroductionMessage(senderId, userName);
-                await markConversation(senderId); // Mark the conversation to prevent repeat intros
+                markConversation(senderId); // Mark the conversation to prevent repeat intros
               }
   
               // Handle different quick reply options
@@ -305,19 +308,13 @@ exports.getInstaMsg = async (req, res) => {
   }
   
   // Utility functions to handle conversation state
-  async function checkConversation(senderId) {
-    // Implement a method to check if the conversation has already started
-    // For example, you can use a database to store conversation states
-    // Here we are simulating it with a simple object
-    const conversations = {}; // Replace with actual database or persistent storage
+  function checkConversation(senderId) {
+    // Check if the conversation has already started
     return conversations[senderId];
   }
   
-  async function markConversation(senderId) {
-    // Implement a method to mark the conversation as started
-    // For example, you can use a database to store conversation states
-    // Here we are simulating it with a simple object
-    const conversations = {}; // Replace with actual database or persistent storage
+  function markConversation(senderId) {
+    // Mark the conversation as started
     conversations[senderId] = true;
   }
   
