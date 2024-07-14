@@ -132,7 +132,7 @@ exports.getInstaMsg = async (req, res) => {
                 await handleKeywordMessage(senderId, messageText);
               } else {
                 // Respond to general messages without triggering a search
-                await sendDefaultResponse(senderId);
+                // await sendDefaultResponse(senderId);
               }
             }
           }
