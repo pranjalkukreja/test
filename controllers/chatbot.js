@@ -112,27 +112,30 @@ exports.getInstaMsg = async (req, res) => {
           if (event.message && event.sender) {
             const senderId = event.sender.id;
             const userName = await getUserName(senderId);
-            const messageText = event.message.text.toLowerCase();
   
-            if (!event.message.is_echo) {
-              // Check if this is the first message in the conversation
-              const conversationData = checkConversation(senderId);
-              if (!conversationData) {
-                await sendIntroductionMessage(senderId, userName);
-                markConversation(senderId); // Mark the conversation to prevent repeat intros
-              }
+            if (event.message.text) {
+              const messageText = event.message.text.toLowerCase();
   
-              // Handle specific commands
-              if (messageText === 'website') {
-                await sendWebsiteLink(senderId);
-              } else if (messageText === 'check news') {
-                await askKeywordForNews(senderId);
-              } else if (conversationData === 'awaiting_keyword') {
-                // If the user was prompted for a keyword, handle it
-                await handleKeywordMessage(senderId, messageText);
-              } else {
-                // Respond to general messages without triggering a search
-                // await sendDefaultResponse(senderId);
+              if (!event.message.is_echo) {
+                // Check if this is the first message in the conversation
+                const conversationData = checkConversation(senderId);
+                if (!conversationData) {
+                  await sendIntroductionMessage(senderId, userName);
+                  markConversation(senderId); // Mark the conversation to prevent repeat intros
+                }
+  
+                // Handle specific commands
+                if (messageText === 'website') {
+                  await sendWebsiteLink(senderId);
+                } else if (messageText === 'check news') {
+                  await askKeywordForNews(senderId);
+                } else if (conversationData === 'awaiting_keyword') {
+                  // If the user was prompted for a keyword, handle it
+                  await handleKeywordMessage(senderId, messageText);
+                } else {
+                  // Respond to general messages without triggering a search
+                  await sendDefaultResponse(senderId);
+                }
               }
             }
           }
@@ -197,7 +200,14 @@ exports.getInstaMsg = async (req, res) => {
         id: senderId
       },
       message: {
-        text: "Here's our website: https://inlooop.com"
+        text: "Here's our website: https://inlooop.com",
+        quick_replies: [
+          {
+            content_type: "text",
+            title: "Check News",
+            payload: "CHECK_NEWS"
+          }
+        ]
       }
     };
   
@@ -217,7 +227,14 @@ exports.getInstaMsg = async (req, res) => {
         id: senderId
       },
       message: {
-        text: "Please enter a keyword to search for news:"
+        text: "Please enter a keyword to search for news:",
+        quick_replies: [
+          {
+            content_type: "text",
+            title: "Website",
+            payload: "WEBSITE"
+          }
+        ]
       }
     };
   
@@ -281,7 +298,19 @@ exports.getInstaMsg = async (req, res) => {
             template_type: "generic",
             elements: elements
           }
-        }
+        },
+        quick_replies: [
+          {
+            content_type: "text",
+            title: "Website",
+            payload: "WEBSITE"
+          },
+          {
+            content_type: "text",
+            title: "Check News",
+            payload: "CHECK_NEWS"
+          }
+        ]
       }
     };
   
@@ -301,7 +330,19 @@ exports.getInstaMsg = async (req, res) => {
         id: senderId
       },
       message: {
-        text: messageText
+        text: messageText,
+        quick_replies: [
+          {
+            content_type: "text",
+            title: "Website",
+            payload: "WEBSITE"
+          },
+          {
+            content_type: "text",
+            title: "Check News",
+            payload: "CHECK_NEWS"
+          }
+        ]
       }
     };
   
@@ -321,7 +362,19 @@ exports.getInstaMsg = async (req, res) => {
         id: senderId
       },
       message: {
-        text: "How can I assist you today? You can type 'Website' to visit our website or 'Check News' to search for news."
+        text: "How can I assist you today? You can type 'Website' to visit our website or 'Check News' to search for news.",
+        quick_replies: [
+          {
+            content_type: "text",
+            title: "Website",
+            payload: "WEBSITE"
+          },
+          {
+            content_type: "text",
+            title: "Check News",
+            payload: "CHECK_NEWS"
+          }
+        ]
       }
     };
   
