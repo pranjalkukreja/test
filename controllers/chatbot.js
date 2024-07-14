@@ -11,6 +11,7 @@ const fs = require('fs');
 let expo = new Expo();
 const { Configuration, OpenAIApi } = require("openai");
 const { TwitterApi } = require('twitter-api-v2');
+const { getAnswerForQuestion } = require('./auth'); // Adjust the path as necessary
 
 const configuration = new Configuration({
   apiKey: process.env.OPENAI_API_KEY,
@@ -129,9 +130,14 @@ exports.getInstaMsg = async (req, res) => {
                   await sendWebsiteLink(senderId);
                 } else if (messageText === 'check news') {
                   await askKeywordForNews(senderId);
+                } else if (messageText === 'fact check by loop') {
+                  await askQuestionForFactCheck(senderId);
                 } else if (conversationData === 'awaiting_keyword') {
                   // If the user was prompted for a keyword, handle it
                   await handleKeywordMessage(senderId, messageText);
+                } else if (conversationData === 'awaiting_question') {
+                  // If the user was prompted for a fact-check question, handle it
+                  await handleFactCheckQuestion(senderId, messageText);
                 } else {
                   // Respond to general messages without triggering a search
                   await sendDefaultResponse(senderId);
@@ -169,18 +175,23 @@ exports.getInstaMsg = async (req, res) => {
       },
       message: {
         text: `Hey ${userName}, this is Loop, an interactive news AI chatbot. We're here to change how you get news by combining and comparing Mainstream Legacy Media in real-time through our AI models, ensuring you get the most accurate news about any topic. How can we help you today?`,
-        quick_replies: [
-          {
-            content_type: "text",
-            title: "Website",
-            payload: "WEBSITE"
-          },
-          {
-            content_type: "text",
-            title: "Check News",
-            payload: "CHECK_NEWS"
-          }
-        ]
+        // quick_replies: [
+        //   {
+        //     content_type: "text",
+        //     title: "Website",
+        //     payload: "WEBSITE"
+        //   },
+        //   {
+        //     content_type: "text",
+        //     title: "Check News",
+        //     payload: "CHECK_NEWS"
+        //   },
+        //   {
+        //     content_type: "text",
+        //     title: "Fact Check By Loop",
+        //     payload: "FACT_CHECK"
+        //   }
+        // ]
       }
     };
   
@@ -206,6 +217,11 @@ exports.getInstaMsg = async (req, res) => {
             content_type: "text",
             title: "Check News",
             payload: "CHECK_NEWS"
+          },
+          {
+            content_type: "text",
+            title: "Fact Check By Loop",
+            payload: "FACT_CHECK"
           }
         ]
       }
@@ -227,14 +243,7 @@ exports.getInstaMsg = async (req, res) => {
         id: senderId
       },
       message: {
-        text: "Please enter a keyword to search for news:",
-        quick_replies: [
-          {
-            content_type: "text",
-            title: "Website",
-            payload: "WEBSITE"
-          }
-        ]
+        text: "Please enter a keyword to search for news:"
       }
     };
   
@@ -247,6 +256,27 @@ exports.getInstaMsg = async (req, res) => {
     }
   }
   
+  async function askQuestionForFactCheck(senderId) {
+    const url = `https://graph.facebook.com/v16.0/me/messages?access_token=${PAGE_ACCESS_TOKEN}`;
+  
+    const messageData = {
+      recipient: {
+        id: senderId
+      },
+      message: {
+        text: "Please enter a question for fact-checking:"
+      }
+    };
+  
+    try {
+      const response = await axios.post(url, messageData);
+      console.log('Prompt for fact-check question sent:', response.data);
+      updateConversation(senderId, 'awaiting_question'); // Update conversation state
+    } catch (error) {
+      console.error('Error sending prompt for fact-check question:', error.response.data);
+    }
+  }
+  
   async function handleKeywordMessage(senderId, keyword) {
     const articles = await fetchNewsByKeyword(keyword);
   
@@ -254,6 +284,29 @@ exports.getInstaMsg = async (req, res) => {
       await sendTextMessage(senderId, "Sorry, I couldn't find any news articles for that keyword.");
     } else {
       await sendNewsArticles(senderId, articles);
+    }
+  
+    updateConversation(senderId, null); // Reset conversation state
+  }
+  
+  async function handleFactCheckQuestion(senderId, question) {
+    try {
+      const req = { body: { question } };
+      const res = {
+        json: async (data) => {
+          await sendTextMessage(senderId, `Here is the fact-check result: ${data.answer}`);
+          await sendTextMessage(senderId, "I hope you are satisfied with the answer. Please let me know if you need more help.");
+        },
+        status: (statusCode) => {
+          return {
+            json: (data) => console.error(`Error: ${statusCode}`, data)
+          };
+        }
+      };
+      await getAnswerForQuestion(req, res);
+    } catch (error) {
+      console.error('Error handling fact check question:', error);
+      await sendTextMessage(senderId, "Sorry, an error occurred while processing your request. Please try again.");
     }
   
     updateConversation(senderId, null); // Reset conversation state
@@ -309,6 +362,11 @@ exports.getInstaMsg = async (req, res) => {
             content_type: "text",
             title: "Check News",
             payload: "CHECK_NEWS"
+          },
+          {
+            content_type: "text",
+            title: "Fact Check By Loop",
+            payload: "FACT_CHECK"
           }
         ]
       }
@@ -341,6 +399,11 @@ exports.getInstaMsg = async (req, res) => {
             content_type: "text",
             title: "Check News",
             payload: "CHECK_NEWS"
+          },
+          {
+            content_type: "text",
+            title: "Fact Check By Loop",
+            payload: "FACT_CHECK"
           }
         ]
       }
@@ -362,7 +425,7 @@ exports.getInstaMsg = async (req, res) => {
         id: senderId
       },
       message: {
-        text: "How can I assist you today? You can type 'Website' to visit our website or 'Check News' to search for news.",
+        text: "How can I assist you today? You can type 'Website' to visit our website, 'Check News' to search for news, or 'Fact Check By Loop' for a fact check.",
         quick_replies: [
           {
             content_type: "text",
@@ -373,6 +436,11 @@ exports.getInstaMsg = async (req, res) => {
             content_type: "text",
             title: "Check News",
             payload: "CHECK_NEWS"
+          },
+          {
+            content_type: "text",
+            title: "Fact Check By Loop",
+            payload: "FACT_CHECK"
           }
         ]
       }
