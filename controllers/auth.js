@@ -536,7 +536,7 @@ exports.createRandomNewsImage = async (article) => {
     const instagramParams = {
       image_url: imageUrl,
       caption: captionDetails,
-      access_token: 'EAADLqeAjhXEBO1wwyQZB52iqUF8jLZBFFdG9je5g4pmJYLJO1dEHt6DgjiRzLmo5e0yUHHJNZAYLREIskUJMjjWfWHhUaOx4TWKtRET5QnZArVJbMAOJUSZBkOBrW7bESSeZAmbesDWbZAhEmxXyYji1hVIeprX7ZA9sUouisZBVEAtggor30W0fXrauqk4CwxqS7uv2gfTCb',
+      access_token: 'EAADLqeAjhXEBO7gFinHSGFYDyQQy8bv19nZApt1TkZBl1OuENijwYW3yh4hvPkRCdYTx62MMDpKe259NbUh0ZCZCH35v3R0epVCAL1bZCFj4ox2MDrjtZA60IEfaZAicWTyoYxChvHwFXJW5KWGBibtAlkxGRtkjSjDebP5A0QqjahVte37qYQl0edDHr064SlNnsC8vBoQ',
     };
 
     for (let attempt = 1; attempt <= 3; attempt++) {
@@ -548,7 +548,7 @@ exports.createRandomNewsImage = async (article) => {
 
         const publishResponse = await axios.post('https://graph.facebook.com/v16.0/17841461851346646/media_publish', {
           creation_id: creationId,
-          access_token: 'EAADLqeAjhXEBO1wwyQZB52iqUF8jLZBFFdG9je5g4pmJYLJO1dEHt6DgjiRzLmo5e0yUHHJNZAYLREIskUJMjjWfWHhUaOx4TWKtRET5QnZArVJbMAOJUSZBkOBrW7bESSeZAmbesDWbZAhEmxXyYji1hVIeprX7ZA9sUouisZBVEAtggor30W0fXrauqk4CwxqS7uv2gfTCb',
+          access_token: 'EAADLqeAjhXEBO7gFinHSGFYDyQQy8bv19nZApt1TkZBl1OuENijwYW3yh4hvPkRCdYTx62MMDpKe259NbUh0ZCZCH35v3R0epVCAL1bZCFj4ox2MDrjtZA60IEfaZAicWTyoYxChvHwFXJW5KWGBibtAlkxGRtkjSjDebP5A0QqjahVte37qYQl0edDHr064SlNnsC8vBoQ',
         });
 
         return { message: 'Image posted successfully to Instagram', instagramPostId: publishResponse.data.id };
@@ -719,7 +719,7 @@ cron.schedule('0 0 * * *', () => {
 
 const checkRateLimit = async () => {
   const userId = '17841461851346646';  // Replace with your Instagram user ID
-  const accessToken = 'EAADLqeAjhXEBO1wwyQZB52iqUF8jLZBFFdG9je5g4pmJYLJO1dEHt6DgjiRzLmo5e0yUHHJNZAYLREIskUJMjjWfWHhUaOx4TWKtRET5QnZArVJbMAOJUSZBkOBrW7bESSeZAmbesDWbZAhEmxXyYji1hVIeprX7ZA9sUouisZBVEAtggor30W0fXrauqk4CwxqS7uv2gfTCb';  // Replace with your access token
+  const accessToken = 'EAADLqeAjhXEBO7gFinHSGFYDyQQy8bv19nZApt1TkZBl1OuENijwYW3yh4hvPkRCdYTx62MMDpKe259NbUh0ZCZCH35v3R0epVCAL1bZCFj4ox2MDrjtZA60IEfaZAicWTyoYxChvHwFXJW5KWGBibtAlkxGRtkjSjDebP5A0QqjahVte37qYQl0edDHr064SlNnsC8vBoQ';  // Replace with your access token
 
   try {
     const response = await axios.get(`https://graph.facebook.com/v16.0/${userId}/content_publishing_limit`, {
@@ -778,7 +778,7 @@ exports.createRandomNewsVideo = async (article) => {
       video_url: videoUrl,
       caption: captionDetails,
       share_to_feed: true,
-      access_token: 'EAADLqeAjhXEBO1wwyQZB52iqUF8jLZBFFdG9je5g4pmJYLJO1dEHt6DgjiRzLmo5e0yUHHJNZAYLREIskUJMjjWfWHhUaOx4TWKtRET5QnZArVJbMAOJUSZBkOBrW7bESSeZAmbesDWbZAhEmxXyYji1hVIeprX7ZA9sUouisZBVEAtggor30W0fXrauqk4CwxqS7uv2gfTCb',
+      access_token: 'EAADLqeAjhXEBO7gFinHSGFYDyQQy8bv19nZApt1TkZBl1OuENijwYW3yh4hvPkRCdYTx62MMDpKe259NbUh0ZCZCH35v3R0epVCAL1bZCFj4ox2MDrjtZA60IEfaZAicWTyoYxChvHwFXJW5KWGBibtAlkxGRtkjSjDebP5A0QqjahVte37qYQl0edDHr064SlNnsC8vBoQ',
     };
 
     for (let attempt = 1; attempt <= 3; attempt++) {
@@ -787,11 +787,11 @@ exports.createRandomNewsVideo = async (article) => {
         console.log('Instagram Response:', instagramResponse.data);
 
         const creationId = instagramResponse.data.id;
-        await waitForMediaToBeReady(creationId, 'EAADLqeAjhXEBO1wwyQZB52iqUF8jLZBFFdG9je5g4pmJYLJO1dEHt6DgjiRzLmo5e0yUHHJNZAYLREIskUJMjjWfWHhUaOx4TWKtRET5QnZArVJbMAOJUSZBkOBrW7bESSeZAmbesDWbZAhEmxXyYji1hVIeprX7ZA9sUouisZBVEAtggor30W0fXrauqk4CwxqS7uv2gfTCb');
+        await waitForMediaToBeReady(creationId, 'EAADLqeAjhXEBO7gFinHSGFYDyQQy8bv19nZApt1TkZBl1OuENijwYW3yh4hvPkRCdYTx62MMDpKe259NbUh0ZCZCH35v3R0epVCAL1bZCFj4ox2MDrjtZA60IEfaZAicWTyoYxChvHwFXJW5KWGBibtAlkxGRtkjSjDebP5A0QqjahVte37qYQl0edDHr064SlNnsC8vBoQ');
 
         const publishResponse = await axios.post('https://graph.facebook.com/v19.0/17841461851346646/media_publish', {
           creation_id: creationId,
-          access_token: 'EAADLqeAjhXEBO1wwyQZB52iqUF8jLZBFFdG9je5g4pmJYLJO1dEHt6DgjiRzLmo5e0yUHHJNZAYLREIskUJMjjWfWHhUaOx4TWKtRET5QnZArVJbMAOJUSZBkOBrW7bESSeZAmbesDWbZAhEmxXyYji1hVIeprX7ZA9sUouisZBVEAtggor30W0fXrauqk4CwxqS7uv2gfTCb',
+          access_token: 'EAADLqeAjhXEBO7gFinHSGFYDyQQy8bv19nZApt1TkZBl1OuENijwYW3yh4hvPkRCdYTx62MMDpKe259NbUh0ZCZCH35v3R0epVCAL1bZCFj4ox2MDrjtZA60IEfaZAicWTyoYxChvHwFXJW5KWGBibtAlkxGRtkjSjDebP5A0QqjahVte37qYQl0edDHr064SlNnsC8vBoQ',
         });
 
         return { message: 'Video posted successfully to Instagram', instagramPostId: publishResponse.data.id };
@@ -838,7 +838,7 @@ const waitForMediaToBeReady = async (creationId, accessToken) => {
 
 const USERNAMES = ['girlalmighty_', 'optima.mart']; // Replace with actual usernames you want to monitor
 const IG_BUSINESS_ACCOUNT_ID = '17841461851346646';  // Replace with your Instagram user ID
-const ACCESS_TOKEN = 'EAADLqeAjhXEBO1wwyQZB52iqUF8jLZBFFdG9je5g4pmJYLJO1dEHt6DgjiRzLmo5e0yUHHJNZAYLREIskUJMjjWfWHhUaOx4TWKtRET5QnZArVJbMAOJUSZBkOBrW7bESSeZAmbesDWbZAhEmxXyYji1hVIeprX7ZA9sUouisZBVEAtggor30W0fXrauqk4CwxqS7uv2gfTCb';  // Replace with your access token
+const ACCESS_TOKEN = 'EAADLqeAjhXEBO7gFinHSGFYDyQQy8bv19nZApt1TkZBl1OuENijwYW3yh4hvPkRCdYTx62MMDpKe259NbUh0ZCZCH35v3R0epVCAL1bZCFj4ox2MDrjtZA60IEfaZAicWTyoYxChvHwFXJW5KWGBibtAlkxGRtkjSjDebP5A0QqjahVte37qYQl0edDHr064SlNnsC8vBoQ';  // Replace with your access token
 
 
 const getMediaFromUsername = async (username) => {
