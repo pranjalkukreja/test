@@ -360,7 +360,7 @@ exports.sendExpoNotifications = async (req, res) => {
 exports.fetchNewsAndPrepareNotifications = async (req, res) => {
   try {
     const uniqueCountryCodes = await Guest.distinct("countryCode");
-    const apiKey = '436ac91b5ed947a7ba5d584bd245913a';
+    const apiKey = '6dc35d202ab94573b73dfd925aa4b4a2';
     const newsByCountry = {};
     const notificationCounts = {};
 
@@ -418,6 +418,7 @@ exports.fetchNewsAndPrepareNotifications = async (req, res) => {
       notificationCounts[countryCode] = 0;
 
       if (countryCode.toUpperCase() === 'US' && articles.length > 0) {
+        console.log('bilti', articles[0]);
         exports.createRandomNewsVideo(articles[0]);  // Assuming createRandomNewsImage is modified to accept an article object
       }
     }
