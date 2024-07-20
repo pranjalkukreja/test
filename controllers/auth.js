@@ -751,7 +751,6 @@ exports.createRandomNewsVideo = async (article) => {
 
     const conciseTitle = titleResponse.data.choices[0].message.content.trim();
     console.log(conciseTitle);
-
     // Now use axios to send data to your own API to create a video
     const videoResponse = await axios.post('https://optimamart.com/api/create-video-loop', {
       title: conciseTitle,
@@ -759,6 +758,7 @@ exports.createRandomNewsVideo = async (article) => {
       description: article.description,
       publishedAt: article.publishedAt
     });
+    console.log(videoResponse.data);
 
     // Assuming the video creation endpoint returns the URL of the created video
     const videoUrl = videoResponse.data.videoUrl;
