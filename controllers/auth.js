@@ -360,7 +360,7 @@ exports.sendExpoNotifications = async (req, res) => {
 exports.fetchNewsAndPrepareNotifications = async (req, res) => {
   try {
     const uniqueCountryCodes = await Guest.distinct("countryCode");
-    const apiKey = 'fc8787c5db404ddda0f7efc4c2120ff3';
+    const apiKey = '436ac91b5ed947a7ba5d584bd245913a';
     const newsByCountry = {};
     const notificationCounts = {};
 
@@ -892,7 +892,7 @@ exports.getAnswerForQuestion = async (req, res) => {
       params: {
         q: refinedQuestion,
         pageSize: 5,
-        apiKey: '0d63ebcbbf464b8b8f4f5d44c2d80ad7',
+        apiKey: '413790213a7649b3a555f7cddb12e7c0',
       },
     });
 
