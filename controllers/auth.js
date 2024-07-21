@@ -379,9 +379,11 @@ exports.fetchNewsAndPrepareNotifications = async (req, res) => {
       };
 
       let data = await fetchNews(params, countryCode);
-      console.log('oorr', data);
-      articles = data.articles;
 
+      if (data == null) {
+        return 
+      }
+      articles = data.articles;
       console.log(articles);  // Logging articles to check the fetched news
 
       if (articles.length === 0) continue; // Skip if no new articles are found
