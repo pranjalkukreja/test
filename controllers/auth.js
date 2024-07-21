@@ -652,7 +652,7 @@ const fetchNews = async (params, countryCode) => {
   const sources = await fetchSources(countryCode);
 
   if (sources.length === 0) {
-    throw new Error('No available sources to fetch news');
+   return
   }
 
   while (attempts < maxAttempts) {
