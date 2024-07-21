@@ -624,6 +624,7 @@ const fetchSources = async (country) => {
         }
       });
       const sources = response.data.sources
+      console.log(sources);
       return sources;
     } catch (error) {
       if (error.response && error.response.status === 429) {
