@@ -372,13 +372,15 @@ exports.fetchNewsAndPrepareNotifications = async (req, res) => {
       let articles;
       let countryName = countryCodeToName(countryCode);
       let randomCategory = categories[Math.floor(Math.random() * categories.length)];
-
+      
       const params = {
         pageSize: 1,
-        page: page++
+        page: page++,
+        country: countryCode,
+        category: randomCategory
       };
 
-      let data = await fetchNews(params, countryCode);
+      let data = await fetchSpecificNews(params);
 
       if (data === null) continue; // Skip if no new articles are found
 
@@ -726,7 +728,7 @@ const   fetchUSNewsAndCreateImage = async (retryCount = 0) => {
         page: page++,
       };
 
-      let data = await fetchNews(params, countryCode);
+      let data = await fetchSpecificNews(params);
       articles = data.articles;
 
       if (articles.length === 0) break;
