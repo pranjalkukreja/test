@@ -702,7 +702,7 @@ const fetchSpecificNews = async (params) => {
   throw new Error('All API keys have exceeded the rate limit');
 };
 
-const fetchUSNewsAndCreateImage = async (retryCount = 0) => {
+const   fetchUSNewsAndCreateImage = async (retryCount = 0) => {
   try {
     const remainingQuota = await checkRateLimit();
     if (remainingQuota < 1) {
@@ -946,8 +946,6 @@ const findFollowing = async () => {
 }
 
 
-
-// Exportable function to fetch articles and generate an answer using GPT
 exports.getAnswerForQuestion = async (req, res) => {
   try {
     const question = req.body.question;
@@ -958,8 +956,15 @@ exports.getAnswerForQuestion = async (req, res) => {
       q: refinedQuestion,
       pageSize: 5,
     };
-    const newsResponse = await fetchSpecificNews(params);
-    const articles = newsResponse.articles;
+    const newsResponse = await axios.get('https://newsapi.org/v2/everything', {
+      params: {
+        q: refinedQuestion,
+        pageSize: 5,
+        apiKey: '413790213a7649b3a555f7cddb12e7c0',
+      },
+    });
+
+    const articles = newsResponse.data.articles;
 
     if (!articles.length) {
       return res.status(404).json({ error: 'No articles found.' });
