@@ -667,7 +667,7 @@ const fetchNews = async (params, countryCode) => {
       params.sources = randomSource.id;
 
       delete params.country;  // Remove country if using sources
-
+      console.log(params);
       let response = await axios.get('https://newsapi.org/v2/top-headlines', { params });
       return response.data;
     } catch (error) {
