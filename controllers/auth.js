@@ -379,8 +379,8 @@ exports.fetchNewsAndPrepareNotifications = async (req, res) => {
           apiKey: apiKey,
         };
 
-        let response = await axios.get('https://newsapi.org/v2/top-headlines', { params });
-        articles = response.data.articles;
+        let data = await fetchNews(params);
+        articles = data.articles;
 
         // Check if articles have already been sent
         const articleTitles = articles.map(article => article.title);
@@ -612,16 +612,33 @@ let currentApiKeyIndex = 0;
 let apiKeyUsageCount = new Array(apiKeys.length).fill(0);
 
 const getNextApiKey = () => {
-  if (apiKeyUsageCount[currentApiKeyIndex] >= 10) {
-    currentApiKeyIndex = (currentApiKeyIndex + 1) % apiKeys.length;
-  }
-  apiKeyUsageCount[currentApiKeyIndex]++;
+  currentApiKeyIndex = (currentApiKeyIndex + 1) % apiKeys.length;
   return apiKeys[currentApiKeyIndex];
+};
+
+const fetchNews = async (params) => {
+  let attempts = 0;
+  let maxAttempts = apiKeys.length;
+  while (attempts < maxAttempts) {
+    try {
+      params.apiKey = apiKeys[currentApiKeyIndex];
+      let response = await axios.get('https://newsapi.org/v2/top-headlines', { params });
+      return response.data;
+    } catch (error) {
+      if (error.response && error.response.status === 429) {
+        console.log(`API key ${apiKeys[currentApiKeyIndex]} exceeded rate limit, switching to next API key.`);
+        currentApiKeyIndex = (currentApiKeyIndex + 1) % apiKeys.length;
+        attempts++;
+      } else {
+        throw error;
+      }
+    }
+  }
+  throw new Error('All API keys have exceeded the rate limit');
 };
 
 const fetchUSNewsAndCreateImage = async (retryCount = 0) => {
   try {
-
     const remainingQuota = await checkRateLimit();
     if (remainingQuota < 1) {
       console.warn('Rate limit too low, skipping posting.');
@@ -632,40 +649,23 @@ const fetchUSNewsAndCreateImage = async (retryCount = 0) => {
 
     let page = 1;
     let articles = [];
-    let apiKey = getNextApiKey();
-    console.log(apiKey);
+
     while (true) {
       const params = {
         country: countryCode,
         pageSize: 1,
         page: page++,
-        apiKey: apiKey,
       };
 
-      let response;
-      try {
-        response = await axios.get('https://newsapi.org/v2/top-headlines', { params });
-        articles = response.data.articles;
-        if (articles.length === 0) break;
+      let data = await fetchNews(params);
+      articles = data.articles;
 
-        const articleTitles = articles.map(article => article.title);
-        const sentArticles = await Article.find({ 'title': { $in: articleTitles }, 'url': { $in: articles.map(article => article.url) } });
+      if (articles.length === 0) break;
 
-        if (sentArticles.length === 0) break;
-      } catch (error) {
-        if (error.response && error.response.status === 429) {
-          console.error(`Error fetching news for ${countryCode} with API key ${apiKey}:`, error);
-          if (retryCount < apiKeys.length) {
-            apiKey = getNextApiKey();
-            retryCount++;
-            continue; // Retry with the next API key
-          } else {
-            throw new Error('All API keys have been rate limited.');
-          }
-        } else {
-          throw error;
-        }
-      }
+      const articleTitles = articles.map(article => article.title);
+      const sentArticles = await Article.find({ 'title': { $in: articleTitles }, 'url': { $in: articles.map(article => article.url) } });
+
+      if (sentArticles.length === 0) break;
     }
 
     if (articles.length === 0) return;
@@ -696,7 +696,7 @@ const fetchUSNewsAndCreateImage = async (retryCount = 0) => {
 };
 
 
-cron.schedule('*/5 * * * *', async () => {
+cron.schedule('*/1 * * * *', async () => {
   console.log('Running fetchUSNewsAndCreateImage every 5 minutes');
   try {
     await fetchUSNewsAndCreateImage();
