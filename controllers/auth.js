@@ -380,9 +380,8 @@ exports.fetchNewsAndPrepareNotifications = async (req, res) => {
 
       let data = await fetchNews(params, countryCode);
 
-      if (data == null) {
-        return 
-      }
+      if (data === null) continue; // Skip if no new articles are found
+
       articles = data.articles;
       console.log(articles);  // Logging articles to check the fetched news
 
