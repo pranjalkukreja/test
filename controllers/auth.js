@@ -696,7 +696,7 @@ const fetchUSNewsAndCreateImage = async (retryCount = 0) => {
 };
 
 
-cron.schedule('*/1 * * * *', async () => {
+cron.schedule('*/5 * * * *', async () => {
   console.log('Running fetchUSNewsAndCreateImage every 5 minutes');
   try {
     await fetchUSNewsAndCreateImage();
