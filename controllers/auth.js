@@ -360,9 +360,10 @@ exports.sendExpoNotifications = async (req, res) => {
 exports.fetchNewsAndPrepareNotifications = async (req, res) => {
   try {
     const uniqueCountryCodes = await Guest.distinct("countryCode");
-    const apiKey = '6dc35d202ab94573b73dfd925aa4b4a2';
     const newsByCountry = {};
     const notificationCounts = {};
+
+    const categories = ['business', 'entertainment', 'general', 'health', 'science', 'sports', 'technology'];
 
     for (let countryCode of uniqueCountryCodes) {
       if (!countryCode) continue;
@@ -370,24 +371,17 @@ exports.fetchNewsAndPrepareNotifications = async (req, res) => {
       let page = 1; // Start from the first page
       let articles;
       let countryName = countryCodeToName(countryCode);
+      let randomCategory = categories[Math.floor(Math.random() * categories.length)];
 
-      do {
-        const params = {
-          country: countryCode,
-          pageSize: 1,
-          page: page++,
-          apiKey: apiKey,
-        };
+      const params = {
+        pageSize: 1,
+        page: page++
+      };
 
-        let data = await fetchNews(params);
-        articles = data.articles;
+      let data = await fetchNews(params, countryCode);
+      articles = data.articles;
 
-        // Check if articles have already been sent
-        const articleTitles = articles.map(article => article.title);
-        const sentArticles = await Article.find({ 'title': { $in: articleTitles }, 'url': { $in: articles.map(article => article.url) } });
-
-        if (sentArticles.length === 0) break; // If no sent articles match, proceed with these articles
-      } while (articles.length > 0);
+      console.log(articles);  // Logging articles to check the fetched news
 
       if (articles.length === 0) continue; // Skip if no new articles are found
 
@@ -408,7 +402,6 @@ exports.fetchNewsAndPrepareNotifications = async (req, res) => {
         };
         return Article.findOneAndUpdate({ url: article.url }, articleToSave, { upsert: true, new: true });
       }));
-
 
       newsByCountry[countryCode] = {
         articles: articles,
@@ -467,8 +460,6 @@ exports.fetchNewsAndPrepareNotifications = async (req, res) => {
       summary[countryName] = notificationCounts[countryCode];
     }
 
-
-
     res.json({ ok: true, notificationsSentSummary: summary });
 
   } catch (error) {
@@ -476,6 +467,8 @@ exports.fetchNewsAndPrepareNotifications = async (req, res) => {
     res.status(500).json({ error: 'An error occurred' });
   }
 };
+
+
 
 
 function countryCodeToName(code) {
@@ -605,7 +598,10 @@ const apiKeys = [
   '0d63ebcbbf464b8b8f4f5d44c2d80ad7',
   '6a010224af40489bbbb95b6f72702c0d',
   '2778ebc590834985b798a228345e9a83',
-  'fc8787c5db404ddda0f7efc4c2120ff3'
+  'fc8787c5db404ddda0f7efc4c2120ff3',
+  '6dc35d202ab94573b73dfd925aa4b4a2',
+  '0c2b52d6e37944aebb29144853614f72',
+  '413790213a7649b3a555f7cddb12e7c0'
   // ... add up to 20 keys
 ];
 let currentApiKeyIndex = 0;
@@ -616,7 +612,76 @@ const getNextApiKey = () => {
   return apiKeys[currentApiKeyIndex];
 };
 
-const fetchNews = async (params) => {
+const fetchSources = async (country) => {
+  let attempts = 0;
+  let maxAttempts = apiKeys.length;
+  while (attempts < maxAttempts) {
+    try {
+      const response = await axios.get('https://newsapi.org/v2/top-headlines/sources', {
+        params: {
+          apiKey: apiKeys[currentApiKeyIndex],
+          country: country
+        }
+      });
+      const sources = response.data.sources
+      return sources;
+    } catch (error) {
+      if (error.response && error.response.status === 429) {
+        console.log(`API key ${apiKeys[currentApiKeyIndex]} exceeded rate limit, switching to next API key.`);
+        currentApiKeyIndex = (currentApiKeyIndex + 1) % apiKeys.length;
+        attempts++;
+      } else {
+        console.error("Error fetching sources:", error);
+        throw error;
+      }
+    }
+  }
+  console.error('All API keys have exceeded the rate limit');
+  return []; // Return an empty array if all API keys are rate-limited
+};
+
+
+
+
+
+const fetchNews = async (params, countryCode) => {
+  let attempts = 0;
+  let maxAttempts = apiKeys.length;
+  const sources = await fetchSources(countryCode);
+
+  if (sources.length === 0) {
+    throw new Error('No available sources to fetch news');
+  }
+
+  while (attempts < maxAttempts) {
+    try {
+      params.apiKey = apiKeys[currentApiKeyIndex];
+      const randomSource = sources[Math.floor(Math.random() * sources.length)];
+      
+      if (!randomSource || !randomSource.id) {
+        throw new Error('Invalid source selected');
+      }
+
+      params.sources = randomSource.id;
+
+      delete params.country;  // Remove country if using sources
+
+      let response = await axios.get('https://newsapi.org/v2/top-headlines', { params });
+      return response.data;
+    } catch (error) {
+      if (error.response && error.response.status === 429) {
+        console.log(`API key ${apiKeys[currentApiKeyIndex]} exceeded rate limit, switching to next API key.`);
+        currentApiKeyIndex = (currentApiKeyIndex + 1) % apiKeys.length;
+        attempts++;
+      } else {
+        throw error;
+      }
+    }
+  }
+  throw new Error('All API keys have exceeded the rate limit');
+};
+
+const fetchSpecificNews = async (params) => {
   let attempts = 0;
   let maxAttempts = apiKeys.length;
   while (attempts < maxAttempts) {
@@ -657,7 +722,7 @@ const fetchUSNewsAndCreateImage = async (retryCount = 0) => {
         page: page++,
       };
 
-      let data = await fetchNews(params);
+      let data = await fetchNews(params, countryCode);
       articles = data.articles;
 
       if (articles.length === 0) break;
@@ -889,15 +954,13 @@ exports.getAnswerForQuestion = async (req, res) => {
     const refinedQuestion = await refineQuestion(question);
     console.log(refinedQuestion);
     // Fetch articles from the News API
-    const newsResponse = await axios.get('https://newsapi.org/v2/everything', {
-      params: {
-        q: refinedQuestion,
-        pageSize: 5,
-        apiKey: '413790213a7649b3a555f7cddb12e7c0',
-      },
-    });
+    const params = {
+      q: refinedQuestion,
+      pageSize: 5,
+    };
+    const newsResponse = await fetchSpecificNews(params);
+    const articles = newsResponse.articles;
 
-    const articles = newsResponse.data.articles;
     if (!articles.length) {
       return res.status(404).json({ error: 'No articles found.' });
     }
