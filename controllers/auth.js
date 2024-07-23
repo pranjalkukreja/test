@@ -508,10 +508,10 @@ exports.createRandomNewsImage = async (article) => {
       accessSecret: 'RsrOtWNWTJGs2JSu4ShgNuL2iWc4Ul3Z36mXcFQQEvMhQ',
     });
 
-    if (article.description !== null) {
+    if (article.title !== null) {
       try {
         const tweet = await twitterClient.v2.tweet({
-          text: `${article.description}`,
+          text: `${article.title} - ${article.description !== null && article.description}`,
         });
         console.log('Tweet posted successfully', tweet);
       } catch (error) {
