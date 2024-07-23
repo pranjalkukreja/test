@@ -501,6 +501,26 @@ cron.schedule('0 * * * *', async () => {
 exports.createRandomNewsImage = async (article) => {
   try {
 
+    const twitterClient = new TwitterApi({
+      appKey: 'EsvXmLGfoejga5MMv6EGlmS1Q',
+      appSecret: 'upfILyXWYaqbRpjOcKVuw2bv6tq30eSR9ZA4WI8HIf4RXi9gqF',
+      accessToken: '1703422723630964736-9anYfHb5FH5K5HssIlExfPhyBKk7ui',
+      accessSecret: 'RsrOtWNWTJGs2JSu4ShgNuL2iWc4Ul3Z36mXcFQQEvMhQ',
+    });
+
+    if (article.description !== null) {
+      try {
+        const tweet = await twitterClient.v2.tweet({
+          text: `${article.description}`,
+        });
+        console.log('Tweet posted successfully', tweet);
+      } catch (error) {
+        console.error('Error posting tweet:', error.response ? error.response.data : error);
+      }
+    } else {
+      console.log('desc', article.description);
+    }
+
     const titleResponse = await openai.createChatCompletion({
       model: "gpt-3.5-turbo",
       messages: [
@@ -560,22 +580,7 @@ exports.createRandomNewsImage = async (article) => {
       }
     }
 
-    const twitterClient = new TwitterApi({
-      appKey: 'EsvXmLGfoejga5MMv6EGlmS1Q',
-      appSecret: 'upfILyXWYaqbRpjOcKVuw2bv6tq30eSR9ZA4WI8HIf4RXi9gqF',
-      accessToken: '1703422723630964736-9anYfHb5FH5K5HssIlExfPhyBKk7ui',
-      accessSecret: 'RsrOtWNWTJGs2JSu4ShgNuL2iWc4Ul3Z36mXcFQQEvMhQ',
-    });
-
-    const tweetText = `${conciseTitle}\n\n${captionDetails}\n\n${imageUrl}`;
-    try {
-      const tweet = await twitterClient.v2.tweet({
-        text: `${article.description}`,
-      });
-      console.log('Tweet posted successfully', tweet);
-    } catch (error) {
-      console.error('Error posting tweet:', error.response ? error.response.data : error);
-    }
+   
 
     return { message: 'Image posted successfully to Instagram', instagramPostId: publishResponse.data.id };
   } catch (error) {
@@ -755,6 +760,7 @@ const   fetchUSNewsAndCreateImage = async (retryCount = 0) => {
         publishedAt: article.publishedAt,
         content: article.content,
       };
+      
       return Article.findOneAndUpdate({ url: article.url }, articleToSave, { upsert: true, new: true });
     }));
 
@@ -799,7 +805,7 @@ const checkRateLimit = async () => {
         access_token: accessToken,
       },
     });
-    const quota_limit = 35;
+    const quota_limit = 39;
     const { quota_usage } = response.data.data[0];
     console.log(`Current quota usage: ${quota_usage}, quota limit: ${quota_limit}`);
     return quota_limit - quota_usage;
@@ -917,7 +923,7 @@ const getMediaFromUsername = async (username) => {
   try {
     const response = await axios.get(`https://graph.facebook.com/v16.0/${IG_BUSINESS_ACCOUNT_ID}`, {
       params: {
-        fields: `business_discovery.username(${username}){followers_count,media_count,media{id,caption,comments_count,like_count}}`,
+        fields: `business_discovery.username(${username}){followers_count,media_count,media{id,caption,comments_count,like_count,media_url}}`,
         access_token: ACCESS_TOKEN
       }
     });
@@ -936,7 +942,7 @@ const getMediaFromUsername = async (username) => {
 
 
 
-const findFollowing = async () => {
+exports.findFollowing = async () => {
 
 
   try {
@@ -1014,4 +1020,35 @@ const refineQuestion = async (question) => {
   const refinedQuestion = refinementResponse.data.choices[0].message.content.trim();
   
   return refinedQuestion;
+};
+
+const twitterClient = new TwitterApi({
+  appKey: 'EsvXmLGfoejga5MMv6EGlmS1Q',
+  appSecret: 'upfILyXWYaqbRpjOcKVuw2bv6tq30eSR9ZA4WI8HIf4RXi9gqF',
+  accessToken: '1703422723630964736-9anYfHb5FH5K5HssIlExfPhyBKk7ui',
+  accessSecret: 'RsrOtWNWTJGs2JSu4ShgNuL2iWc4Ul3Z36mXcFQQEvMhQ',
+});
+
+// Function to fetch trending topics
+exports.fetchTrendingTopics = async () => {
+  try {
+    // Endpoint for Twitter API v1.1 to fetch trending topics
+    const url = 'https://api.twitter.com/1.1/trends/place.json';
+    
+    // Make a GET request with Axios
+    const response = await axios.get(url, {
+      params: {
+        id: 1 // WOEID 1 for worldwide trends
+      },
+      headers: {
+        'Authorization': `AAAAAAAAAAAAAAAAAAAAAPmzuQEAAAAAzzGrDEWQkHSWYD1xZLz93uZYm2o%3DwbZBT4NBUrmbtyuS1LhDUuBU2rvYSXAYRPT2UERl306frpGa6Z`
+      }
+    });
+    
+    // Return the response data
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching trending topics:', error);
+    throw error; // Re-throw error to be handled by calling code
+  }
 };
