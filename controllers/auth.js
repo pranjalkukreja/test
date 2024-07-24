@@ -489,7 +489,6 @@ cron.schedule('0 * * * *', async () => {
   try {
     // Assuming fetchNewsAndPrepareNotifications is an async function and doesn't need req, res
     await exports.fetchNewsAndPrepareNotifications(); // Adjust as needed for your actual function call
-    await exports.findFollowing(); // Adjust as needed for your actual function call
 
   } catch (error) {
     console.error("Error during scheduled task:", error);
@@ -790,7 +789,18 @@ cron.schedule('*/5 * * * *', async () => {
   console.log('Running fetchUSNewsAndCreateImage every 5 minutes');
   try {
     await fetchUSNewsAndCreateImage();
-    // await findFollowing();
+  } catch (error) {
+    console.error('Error during scheduled task:', error);
+  }
+}, {
+  scheduled: true,
+  timezone: 'Asia/Kolkata',
+});
+
+cron.schedule('30 * * * *', async () => {
+  try {
+    await exports.findFollowing();
+    console.log('Task completed successfully.');
   } catch (error) {
     console.error('Error during scheduled task:', error);
   }
