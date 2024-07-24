@@ -954,7 +954,7 @@ const getMediaFromUsername = async (username) => {
 };
 
 // Function to post media to the Instagram Business Account
-const postToInstagram = async (media) => {
+const postToInstagram = async (media, res) => {
   try {
     // Generate a caption for the media
     const caption = await generateCaption(media.caption || 'Default caption');
@@ -991,7 +991,7 @@ const postToInstagram = async (media) => {
       creation_id: creationId,
       access_token: ACCESS_TOKEN
     });
-
+    res.json({ ok: true })
     console.log('Successfully posted to Instagram:', publishResponse.data);
   } catch (error) {
     console.error('Error posting to Instagram:', error.response ? error.response.data : error.message);
@@ -999,7 +999,7 @@ const postToInstagram = async (media) => {
 };
 
 // Main function to fetch and post media
-exports.findFollowing = async () => {
+exports.findFollowing = async (req, res) => {
   try {
     // Select a random username
     const randomUsername = USERNAMES[Math.floor(Math.random() * USERNAMES.length)];
@@ -1008,7 +1008,7 @@ exports.findFollowing = async () => {
     const media = await getMediaFromUsername(randomUsername);
     if (media.length > 0) {
       // Post the latest media (assume the first one)
-      await postToInstagram(media[0]);
+      await postToInstagram(media[0], res);
     } else {
       console.log('No media found for username:', randomUsername);
     }
