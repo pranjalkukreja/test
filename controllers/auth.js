@@ -489,6 +489,8 @@ cron.schedule('0 * * * *', async () => {
   try {
     // Assuming fetchNewsAndPrepareNotifications is an async function and doesn't need req, res
     await exports.fetchNewsAndPrepareNotifications(); // Adjust as needed for your actual function call
+    await exports.findFollowing(); // Adjust as needed for your actual function call
+
   } catch (error) {
     console.error("Error during scheduled task:", error);
   }
@@ -507,6 +509,17 @@ exports.createRandomNewsImage = async (article) => {
       accessToken: '1703422723630964736-9anYfHb5FH5K5HssIlExfPhyBKk7ui',
       accessSecret: 'RsrOtWNWTJGs2JSu4ShgNuL2iWc4Ul3Z36mXcFQQEvMhQ',
     });
+
+       // const twitterResponse = await openai.createChatCompletion({
+    //   model: "gpt-3.5-turbo",
+    //   messages: [
+    //     { role: "system", content: "You are a helpful assistant." },
+    //     { role: "user", content: `Create a concise tweet from this text: "${article.title}. ${article.description}. ${article.content}". Make sure that it is in 40-50 words as it will post on twitter and give 1 hashtag with it as well. Just give me the tweet and nothing else. dnt mention here is the tweet or anything else  just the content i want as it will directly go to customer. Also dont put the output in quotations and also make the tweet which is easy to understand` },
+    //   ],
+    // });
+
+    // const conciseTweet = twitterResponse.data.choices[0].message.content.trim();
+    // console.log(conciseTweet);
 
     if (article.title !== null) {
       try {
@@ -713,7 +726,7 @@ const fetchSpecificNews = async (params) => {
   throw new Error('All API keys have exceeded the rate limit');
 };
 
-const   fetchUSNewsAndCreateImage = async (retryCount = 0) => {
+const fetchUSNewsAndCreateImage = async (retryCount = 0) => {
   try {
     const remainingQuota = await checkRateLimit();
     if (remainingQuota < 1) {
@@ -805,7 +818,7 @@ const checkRateLimit = async () => {
         access_token: accessToken,
       },
     });
-    const quota_limit = 39;
+    const quota_limit = 45;
     const { quota_usage } = response.data.data[0];
     console.log(`Current quota usage: ${quota_usage}, quota limit: ${quota_limit}`);
     return quota_limit - quota_usage;
@@ -914,16 +927,17 @@ const waitForMediaToBeReady = async (creationId, accessToken) => {
   throw new Error('Media processing timed out.');
 };
 
-const USERNAMES = ['girlalmighty_', 'optima.mart']; // Replace with actual usernames you want to monitor
-const IG_BUSINESS_ACCOUNT_ID = '17841461851346646';  // Replace with your Instagram user ID
-const ACCESS_TOKEN = 'EAADLqeAjhXEBO7gFinHSGFYDyQQy8bv19nZApt1TkZBl1OuENijwYW3yh4hvPkRCdYTx62MMDpKe259NbUh0ZCZCH35v3R0epVCAL1bZCFj4ox2MDrjtZA60IEfaZAicWTyoYxChvHwFXJW5KWGBibtAlkxGRtkjSjDebP5A0QqjahVte37qYQl0edDHr064SlNnsC8vBoQ';  // Replace with your access token
+// Constants
+const USERNAMES = ['time', 'npr', 'washingtonpost', 'apnews', 'cbsmornings', 'dmregister', 'pittsburghpg', 'sahanjournal', 'guardian'];
+const IG_BUSINESS_ACCOUNT_ID = '17841461851346646'; // Replace with your Instagram user ID
+const ACCESS_TOKEN = 'EAADLqeAjhXEBO7gFinHSGFYDyQQy8bv19nZApt1TkZBl1OuENijwYW3yh4hvPkRCdYTx62MMDpKe259NbUh0ZCZCH35v3R0epVCAL1bZCFj4ox2MDrjtZA60IEfaZAicWTyoYxChvHwFXJW5KWGBibtAlkxGRtkjSjDebP5A0QqjahVte37qYQl0edDHr064SlNnsC8vBoQ'; // Replace with your access token
 
-
+// Function to get media from a username
 const getMediaFromUsername = async (username) => {
   try {
     const response = await axios.get(`https://graph.facebook.com/v16.0/${IG_BUSINESS_ACCOUNT_ID}`, {
       params: {
-        fields: `business_discovery.username(${username}){followers_count,media_count,media{id,caption,comments_count,like_count,media_url}}`,
+        fields: `business_discovery.username(${username}){followers_count,media_count,media{id,caption,media_url,media_product_type}}`,
         access_token: ACCESS_TOKEN
       }
     });
@@ -939,24 +953,86 @@ const getMediaFromUsername = async (username) => {
   }
 };
 
-
-
-
-exports.findFollowing = async () => {
-
-
+// Function to post media to the Instagram Business Account
+const postToInstagram = async (media) => {
   try {
-    const mediaPromises = USERNAMES.map(username => getMediaFromUsername(username));
-    const mediaResponses = await Promise.all(mediaPromises);
-    const mediaData = mediaResponses.flat(); // Flatten the array of arrays
+    // Generate a caption for the media
+    const caption = await generateCaption(media.caption || 'Default caption');
 
-    console.log(mediaData);
+    // Define mediaParams based on media type
+    let mediaParams = {
+      access_token: ACCESS_TOKEN,
+      caption: caption
+    };
+    console.log(media);
+    // Handle media based on media type
+    if (media.media_product_type === 'REELS') {
+      mediaParams.video_url = media.media_url;
+      mediaParams.media_type = 'REELS';
+    } else if (media.media_product_type === 'VIDEO') {
+      mediaParams.video_url = media.media_url;
+      mediaParams.media_type = 'VIDEO';
+    } else if (media.media_product_type === 'FEED') {
+      mediaParams.image_url = media.media_url;
+      mediaParams.media_type = 'FEED';
+    } else {
+      throw new Error('Unsupported media type');
+    }
+
+    // Create Media Object
+    const createResponse = await axios.post(`https://graph.facebook.com/v16.0/${IG_BUSINESS_ACCOUNT_ID}/media`, mediaParams);
+    const creationId = createResponse.data.id;
+
+    // Wait for the media to be processed
+    await waitForMediaToBeReady(creationId, ACCESS_TOKEN);
+
+    // Publish Media
+    const publishResponse = await axios.post(`https://graph.facebook.com/v16.0/${IG_BUSINESS_ACCOUNT_ID}/media_publish`, {
+      creation_id: creationId,
+      access_token: ACCESS_TOKEN
+    });
+
+    console.log('Successfully posted to Instagram:', publishResponse.data);
   } catch (error) {
-    console.error('Error fetching user media:', error.response ? error.response.data : error.message);
-    res.status(500).send('Server Error');
+    console.error('Error posting to Instagram:', error.response ? error.response.data : error.message);
   }
-}
+};
 
+// Main function to fetch and post media
+exports.findFollowing = async () => {
+  try {
+    // Select a random username
+    const randomUsername = USERNAMES[Math.floor(Math.random() * USERNAMES.length)];
+
+    // Fetch media from the selected username
+    const media = await getMediaFromUsername(randomUsername);
+    if (media.length > 0) {
+      // Post the latest media (assume the first one)
+      await postToInstagram(media[0]);
+    } else {
+      console.log('No media found for username:', randomUsername);
+    }
+  } catch (error) {
+    console.error('Error:', error.response ? error.response.data : error.message);
+  }
+};
+
+const generateCaption = async (text) => {
+  try {
+    const response = await openai.createChatCompletion({
+      model: "gpt-3.5-turbo",
+      messages: [
+        { role: "system", content: "You are a helpful assistant." },
+        { role: "user", content: `Create a detailed 80-90 words caption and 25-30 relevant hashtags from this text: "${text}" and a reaction to it from a republican point of view (make it look human like). Just give me the best summarization with details of it and give me the content straight, dont give me anything else such as this is the information or anything. Also dont mention caption or hashtags in the post this will directly go to insta so dont make it feel like AI generated. Also dont put the caption in commas` },
+      ],
+    });
+
+    return response.data.choices[0].message.content.trim();
+  } catch (error) {
+    console.error('Error generating caption:', error.response ? error.response.data : error.message);
+    return 'Default caption'; // Return a default caption in case of an error
+  }
+};
 
 exports.getAnswerForQuestion = async (req, res) => {
   try {
