@@ -947,7 +947,7 @@ const getMediaFromUsername = async (username) => {
   try {
     const response = await axios.get(`https://graph.facebook.com/v16.0/${IG_BUSINESS_ACCOUNT_ID}`, {
       params: {
-        fields: `business_discovery.username(${username}){followers_count,media_count,media{id,caption,media_url,media_product_type}}`,
+        fields: `business_discovery.username(${username}){followers_count,media_count,media{id,caption,media_url,media_product_type,media_type}}`,
         access_token: ACCESS_TOKEN
       }
     });
@@ -974,17 +974,29 @@ const postToInstagram = async (media, res) => {
       access_token: ACCESS_TOKEN,
       caption: caption
     };
-    console.log(media);
+
     // Handle media based on media type
-    if (media.media_product_type === 'REELS') {
+    if (media.media_type === 'CAROUSEL_ALBUM') {
+      // Carousel requires multiple media items
+      mediaParams = {
+        access_token: ACCESS_TOKEN,
+        media_type: 'CAROUSEL',
+        children: media.children.map(child => ({
+          media_type: child.media_type,
+          media_url: child.media_url,
+          caption: child.caption || ''
+        })),
+        caption: caption
+      };
+    } else if (media.media_type === 'REELS') {
       mediaParams.video_url = media.media_url;
       mediaParams.media_type = 'REELS';
-    } else if (media.media_product_type === 'VIDEO') {
+    } else if (media.media_type === 'VIDEO') {
       mediaParams.video_url = media.media_url;
       mediaParams.media_type = 'VIDEO';
-    } else if (media.media_product_type === 'FEED') {
+    } else if (media.media_type === 'IMAGE') {
       mediaParams.image_url = media.media_url;
-      mediaParams.media_type = 'FEED';
+      mediaParams.media_type = 'IMAGE';
     } else {
       throw new Error('Unsupported media type');
     }
@@ -1001,12 +1013,15 @@ const postToInstagram = async (media, res) => {
       creation_id: creationId,
       access_token: ACCESS_TOKEN
     });
-    res.json({ ok: true })
+    
+    res.json({ ok: true });
     console.log('Successfully posted to Instagram:', publishResponse.data);
   } catch (error) {
     console.error('Error posting to Instagram:', error.response ? error.response.data : error.message);
+    res.status(500).json({ error: error.message });
   }
 };
+
 
 // Main function to fetch and post media
 exports.findFollowing = async (req, res) => {
@@ -1017,8 +1032,14 @@ exports.findFollowing = async (req, res) => {
     // Fetch media from the selected username
     const media = await getMediaFromUsername(randomUsername);
     if (media.length > 0) {
-      // Post the latest media (assume the first one)
-      await postToInstagram(media[0], res);
+      // Limit to the first 5 media items
+      const limitedMedia = media.slice(0, 5);
+        console.log(media);
+      // Randomly select one of the limited media items
+      const randomMedia = limitedMedia[Math.floor(Math.random() * limitedMedia.length)];
+      
+      // Post the randomly selected media
+      await postToInstagram(randomMedia, res);
     } else {
       console.log('No media found for username:', randomUsername);
     }
@@ -1026,6 +1047,7 @@ exports.findFollowing = async (req, res) => {
     console.error('Error:', error.response ? error.response.data : error.message);
   }
 };
+
 
 const generateCaption = async (text) => {
   try {
