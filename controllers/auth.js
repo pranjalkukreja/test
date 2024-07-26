@@ -828,7 +828,7 @@ const checkRateLimit = async () => {
         access_token: accessToken,
       },
     });
-    const quota_limit = 45;
+    const quota_limit = 25;
     const { quota_usage } = response.data.data[0];
     console.log(`Current quota usage: ${quota_usage}, quota limit: ${quota_limit}`);
     return quota_limit - quota_usage;
