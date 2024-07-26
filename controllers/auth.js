@@ -969,31 +969,20 @@ const postToInstagram = async (media, res) => {
     // Generate a caption for the media
     const caption = await generateCaption(media.caption || 'Default caption');
 
-    // Define mediaParams based on media type
     let mediaParams = {
       access_token: ACCESS_TOKEN,
       caption: caption
     };
+    console.log(media);
 
     // Handle media based on media type
     if (media.media_type === 'CAROUSEL_ALBUM') {
-      // Carousel requires multiple media items
-      mediaParams = {
-        access_token: ACCESS_TOKEN,
-        media_type: 'CAROUSEL',
-        children: media.children.map(child => ({
-          media_type: child.media_type,
-          media_url: child.media_url,
-          caption: child.caption || ''
-        })),
-        caption: caption
-      };
-    } else if (media.media_type === 'REELS') {
-      mediaParams.video_url = media.media_url;
-      mediaParams.media_type = 'REELS';
+      // Fetch carousel items
+      throw new Error('Carousel albums require special handling and might not be supported in this implementation.');
+
     } else if (media.media_type === 'VIDEO') {
       mediaParams.video_url = media.media_url;
-      mediaParams.media_type = 'VIDEO';
+      mediaParams.media_type = 'REELS';
     } else if (media.media_type === 'IMAGE') {
       mediaParams.image_url = media.media_url;
       mediaParams.media_type = 'IMAGE';
@@ -1013,7 +1002,7 @@ const postToInstagram = async (media, res) => {
       creation_id: creationId,
       access_token: ACCESS_TOKEN
     });
-    
+
     res.json({ ok: true });
     console.log('Successfully posted to Instagram:', publishResponse.data);
   } catch (error) {
@@ -1021,6 +1010,23 @@ const postToInstagram = async (media, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+// Example function to fetch carousel items (you need to implement this based on your API)
+const getCarouselItems = async (carouselId) => {
+  try {
+    const response = await axios.get(`https://graph.facebook.com/v16.0/${carouselId}/children`, {
+      params: {
+        fields: 'id,media_type,media_url,caption',
+        access_token: ACCESS_TOKEN
+      }
+    });
+    return response.data.data; // Adjust this based on the API response structure
+  } catch (error) {
+    console.error('Error fetching carousel items:', error.response ? error.response.data : error.message);
+    throw error;
+  }
+};
+
 
 
 // Main function to fetch and post media
