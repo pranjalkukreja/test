@@ -938,7 +938,7 @@ const waitForMediaToBeReady = async (creationId, accessToken) => {
 };
 
 // Constants
-const USERNAMES = ['time', 'npr', 'washingtonpost', 'apnews', 'cbsmornings', 'dmregister', 'pittsburghpg', 'sahanjournal', 'guardian'];
+const USERNAMES = ['time', 'npr', 'washingtonpost', 'apnews', 'cbsmornings', 'dmregister', 'pittsburghpg', 'sahanjournal', 'guardian', 'thefreepress', 'popculture', 'ajplus', 'vanityfair'];
 const IG_BUSINESS_ACCOUNT_ID = '17841461851346646'; // Replace with your Instagram user ID
 const ACCESS_TOKEN = 'EAADLqeAjhXEBO7gFinHSGFYDyQQy8bv19nZApt1TkZBl1OuENijwYW3yh4hvPkRCdYTx62MMDpKe259NbUh0ZCZCH35v3R0epVCAL1bZCFj4ox2MDrjtZA60IEfaZAicWTyoYxChvHwFXJW5KWGBibtAlkxGRtkjSjDebP5A0QqjahVte37qYQl0edDHr064SlNnsC8vBoQ'; // Replace with your access token
 
