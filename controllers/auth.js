@@ -523,7 +523,7 @@ exports.createRandomNewsImage = async (article) => {
     if (article.title !== null) {
       try {
         const tweet = await twitterClient.v2.tweet({
-          text: `${article.title} - ${article.description !== null && article.description}`,
+          text: `${article.title} ${article.description !== null ? `- ${article.description}` : ``}`,
         });
         console.log('Tweet posted successfully', tweet);
       } catch (error) {
@@ -1029,7 +1029,6 @@ const getCarouselItems = async (carouselId) => {
 
 
 
-// Main function to fetch and post media
 exports.findFollowing = async (req, res) => {
   try {
     // Select a random username
@@ -1037,15 +1036,23 @@ exports.findFollowing = async (req, res) => {
 
     // Fetch media from the selected username
     const media = await getMediaFromUsername(randomUsername);
+
     if (media.length > 0) {
-      // Limit to the first 5 media items
-      const limitedMedia = media.slice(0, 5);
-        console.log(media);
-      // Randomly select one of the limited media items
-      const randomMedia = limitedMedia[Math.floor(Math.random() * limitedMedia.length)];
+      // Filter to only include images and videos
+      const imagesAndVideos = media.filter(item => item.media_type === 'IMAGE' || item.media_type === 'VIDEO');
       
-      // Post the randomly selected media
-      await postToInstagram(randomMedia, res);
+      if (imagesAndVideos.length > 0) {
+        // Limit to the first 5 media items
+        const limitedMedia = imagesAndVideos.slice(0, 5);
+
+        // Randomly select one of the limited media items
+        const randomMedia = limitedMedia[Math.floor(Math.random() * limitedMedia.length)];
+
+        // Post the randomly selected media
+        await postToInstagram(randomMedia, res);
+      } else {
+        console.log('No images or videos found for username:', randomUsername);
+      }
     } else {
       console.log('No media found for username:', randomUsername);
     }
@@ -1055,13 +1062,14 @@ exports.findFollowing = async (req, res) => {
 };
 
 
+
 const generateCaption = async (text) => {
   try {
     const response = await openai.createChatCompletion({
       model: "gpt-3.5-turbo",
       messages: [
         { role: "system", content: "You are a helpful assistant." },
-        { role: "user", content: `Create a detailed 80-90 words caption and 25-30 relevant hashtags from this text: "${text}" and a reaction to it from a republican point of view (make it look human like). Just give me the best summarization with details of it and give me the content straight, dont give me anything else such as this is the information or anything. Also dont mention caption or hashtags in the post this will directly go to insta so dont make it feel like AI generated. Also dont put the caption in commas` },
+        { role: "user", content: `Create a detailed 80-90 words caption and 25-30 relevant hashtags from this text: "${text}". Just give me the best summarization with details of it and give me the content straight, dont give me anything else such as this is the information or anything. Also dont mention caption or hashtags in the post this will directly go to insta so dont make it feel like AI generated. Also dont put the caption in commas` },
       ],
     });
 
